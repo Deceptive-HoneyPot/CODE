@@ -1,0 +1,156 @@
+version: "3.9"
+
+services:
+
+  ganache:
+    image: trufflesuite/ganache:latest
+    ports:
+      - "7545:7545"
+    command: >
+      --chain.chainId 1337
+      --wallet.totalAccounts 5
+      --wallet.defaultBalance 1000
+      --server.port 7545
+    networks:
+      - honeypot-net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - honeypot-net
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: honeypot
+      POSTGRES_PASSWORD: fakesecret123
+      POSTGRES_DB: corporate_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./decoys/vault-sql/fake_data.sql:/docker-entrypoint-initdb.d/fake_data.sql
+    networks:
+      - honeypot-net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - REDIS_HOST=redis
+      - GANACHE_URL=http://ganache:7545
+    depends_on:
+      - redis
+      - ganache
+    networks:
+      - honeypot-net
+
+  shadow-shell:
+    build:
+      context: ./decoys/shadow-shell
+      dockerfile: Dockerfile
+    ports:
+      - "2223:2223"
+    environment:
+      - REDIS_HOST=redis
+      - BACKEND_URL=http://backend:3001
+      - OLLAMA_HOST=host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - shadow-shell-keys:/app/keys
+    depends_on:
+      - redis
+      - backend
+    networks:
+      - honeypot-net
+
+  oracle-ai:
+    build:
+      context: ./decoys/oracle-ai
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      - REDIS_HOST=redis
+      - BACKEND_URL=http://backend:3001
+      - OLLAMA_HOST=host.docker.internal:11434
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - honeypot-net
+
+  vault-sql:
+    build:
+      context: ./decoys/vault-sql
+      dockerfile: Dockerfile
+    ports:
+      - "5435:5435"
+    environment:
+      - BACKEND_URL=http://backend:3001
+    depends_on:
+      - backend
+    networks:
+      - honeypot-net
+
+  ledger-trap:
+    build:
+      context: ./decoys/ledger-trap
+      dockerfile: Dockerfile
+    ports:
+      - "8546:8546"
+    networks:
+      - honeypot-net
+
+  forge-ci:
+    build:
+      context: ./decoys/forge-ci
+      dockerfile: Dockerfile
+    ports:
+      - "9091:9091"
+    networks:
+      - honeypot-net
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - honeypot-net
+
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    ports:
+      - "2222:2222"
+      - "8080:8080"
+      - "5433:5433"
+      - "8545:8545"
+      - "9090:9090"
+    environment:
+      - BACKEND_URL=http://backend:3001
+    depends_on:
+      - shadow-shell
+      - oracle-ai
+      - backend
+    networks:
+      - honeypot-net
+
+volumes:
+  redis-data:
+  shadow-shell-keys:
+
+networks:
+  honeypot-net:
+    driver: bridge

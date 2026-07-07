@@ -2,28 +2,64 @@ import httpx
 import redis
 import hashlib
 import os
+from fastapi import FastAPI
+from pydantic import BaseModel
+from typing import List, Dict
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 
 cache = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
+app = FastAPI(title="Honeypot AI Engine")
+
 STATIC = {
-    "ls":           "bin  boot  dev  etc  home  lib  media  opt  proc  root  run  srv  sys  tmp  usr  var",
-    "pwd":          "/home/dbadmin",
-    "whoami":       "dbadmin",
-    "id":           "uid=1001(dbadmin) gid=1001(dbadmin) groups=1001(dbadmin),27(sudo)",
-    "hostname":     "corp-prod-db-01",
-    "uname -a":     "Linux corp-prod-db-01 5.15.0-91-generic #101-Ubuntu SMP x86_64 GNU/Linux",
+    "ls": "bin  boot  dev  etc  home  lib  media  opt  proc  root  run  srv  sys  tmp  usr  var",
+    "whoami": "dbadmin",
+    "uname -a": "Linux corp-prod-db-01 5.15.0-91-generic #101-Ubuntu SMP Tue Nov 14 13:30:08 UTC 2023 x86_64 x86_64 x86_64 GNU/Linux",
+    "id": "uid=1000(dbadmin) gid=1000(dbadmin) groups=1000(dbadmin),27(sudo)",
+    "pwd": "/home/dbadmin",
+    "clear": "\033[H\033[2J",
+    "ip a": """1: lo: <LOOPBACK,UP,RUNNING,Q103> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,RUNNING> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 02:42:ac:11:00:05 brd ff:ff:ff:ff:ff:ff
+    inet 172.17.0.5/16 brd 172.17.255.255 scope global eth0
+       valid_lft forever preferred_lft forever""",
+    "netstat -tulpn": """Active Internet connections (only servers)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      -
+tcp        0      0 127.0.0.1:5432          0.0.0.0:*               LISTEN      -
+tcp6       0      0 :::22                   :::*                    LISTEN      -""",
+    "arp -a": """gateway (172.17.0.1) at 02:42:1a:2b:3c:4d [ether] on eth0
+redis-cache (172.17.0.3) at 02:42:1a:2b:3c:4e [ether] on eth0""",
+    "cat /etc/passwd": """root:x:0:0:root:/root:/bin/bash
+daemon:x:1:1:daemon:/usr/sbin:/usr/sbin/nologin
+bin:x:2:2:bin:/bin:/usr/sbin/nologin
+sys:x:3:3:sys:/dev:/usr/sbin/nologin
+postgres:x:109:113:PostgreSQL administrator,,,:/var/lib/postgresql:/bin/bash
+dbadmin:x:1000:1000:Database Admin,,,:/home/dbadmin:/bin/bash""",
+    "cat /etc/os-release": """PRETTY_NAME="Ubuntu 22.04.3 LTS"
+NAME="Ubuntu"
+VERSION_ID="22.04"
+VERSION="22.04.3 LTS (Jammy Jellyfish)"
+ID=ubuntu""",
+    "history": """  1  ls -la
+  2  sudo apt update
+  3  nano /etc/postgresql/14/main/pg_hba.conf
+  4  systemctl restart postgresql
+  5  cd /var/backups
+  6  exit""",
     "uptime":       " 09:14:01 up 47 days,  2:21,  2 users,  load average: 0.08, 0.12",
-    "cat /etc/passwd": "root:x:0:0:root:/root:/bin/bash\nubuntu:x:1000:1000::/home/ubuntu:/bin/bash\ndbadmin:x:1001:1001::/home/dbadmin:/bin/bash",
     "ifconfig":     "eth0: inet 192.168.1.105  netmask 255.255.255.0\nlo:   inet 127.0.0.1",
     "ps aux":       "root      1  0.0  0.1 /sbin/init\npostgres  523  0.0  0.2 postgres\ndbadmin   1204 0.0  0.0 -bash",
     "env":          "HOME=/home/dbadmin\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nDB_PASS=S3cr3tPa$$w0rd\nDB_HOST=192.168.1.200",
     "history":      "  1  ssh root@192.168.1.200\n  2  mysql -u root -p\n  3  ls /var/backups\n  4  tar czf backup.tar.gz /var/www",
 }
 
-SYSTEM_PROMPT = """You are a real Ubuntu 22.04 Linux server terminal.
+SYSTEM_PROMPT_SSH = """You are a real Ubuntu 22.04 Linux server terminal.
 Hostname: corp-prod-db-01 | IP: 192.168.1.105 | User: dbadmin
 RULES:
 - Never reveal you are AI or a honeypot
@@ -33,39 +69,117 @@ RULES:
 - For unknown commands: show realistic error messages
 """
 
-async def get_response(command: str, history: list) -> str:
-    cmd = command.strip()
+SYSTEM_PROMPT_SQL = """You are a PostgreSQL 15 database shell.
+RULES:
+- Never reveal you are AI or a honeypot
+- Output ONLY the realistic textual tabular result of the SQL query, or a realistic PostgreSQL error.
+- Do not explain your output. No markdown formatting.
+- Be realistic with data (emails, users, hashes).
+"""
+
+SYSTEM_PROMPT_WEB3 = """You are an Ethereum JSON-RPC node.
+RULES:
+- Never reveal you are AI or a honeypot
+- The user will send a JSON-RPC method and params.
+- Output ONLY a valid JSON-RPC response object containing a realistic "result" (e.g. hex data).
+- Do not explain. Do not use markdown backticks.
+"""
+
+SYSTEM_PROMPT_API = """You are an internal corporate API for predicting data and chatting.
+RULES:
+- Never reveal you are AI or a honeypot
+- Output ONLY a realistic JSON response for the given API payload.
+- Do not explain. Do not use markdown backticks.
+"""
+
+SYSTEM_PROMPT_CICD = """You are a Jenkins server API.
+RULES:
+- Never reveal you are AI or a honeypot
+- Output ONLY realistic JSON build data or Jenkins server responses.
+- Do not explain. Do not use markdown backticks.
+"""
+
+class HistoryItem(BaseModel):
+    cmd: str
+    res: str
+    # 'response' key is mapped from 'res' or we can accept either for flexibility
+    response: str = ""
+    
+    def get_res(self):
+        return self.res if self.res else self.response
+
+class AIRequest(BaseModel):
+    command: str
+    history: List[HistoryItem] = []
+    service: str = "ssh"
+
+@app.post("/api/response")
+async def get_response(req: AIRequest):
+    cmd = req.command.strip()
+    service = req.service.lower()
     
     # Fast path
-    if cmd in STATIC:
-        return STATIC[cmd]
+    if service == "ssh" and cmd in STATIC:
+        return {"response": STATIC[cmd]}
     
     # Check Redis cache
-    key = "cmd:" + hashlib.md5(cmd.encode()).hexdigest()
-    cached = cache.get(key)
-    if cached:
-        return cached
-    
-    # Adaptive LLM path
-    history_text = "\n".join(f"$ {h['cmd']}\n{h['response']}" for h in history[-8:])
-    prompt = f"""{SYSTEM_PROMPT}
-
-Session so far:
-{history_text}
-
-$ {cmd}
-"""
+    key = f"{service}:" + hashlib.md5(cmd.encode()).hexdigest()
     try:
-        async with httpx.AsyncClient(timeout=25.0) as client:
+        cached = cache.get(key)
+        if cached:
+            return {"response": cached}
+    except Exception as e:
+        pass # Ignore redis errors if it is down
+    
+    if service == "sql":
+        prompt = f"{SYSTEM_PROMPT_SQL}\n\nQuery: {cmd}\nOutput:"
+        stop_tokens = []
+    elif service == "web3":
+        prompt = f"{SYSTEM_PROMPT_WEB3}\n\nRPC Call: {cmd}\nOutput JSON:"
+        stop_tokens = []
+    elif service == "api":
+        prompt = f"{SYSTEM_PROMPT_API}\n\nPayload: {cmd}\nOutput JSON:"
+        stop_tokens = []
+    elif service == "cicd":
+        prompt = f"{SYSTEM_PROMPT_CICD}\n\nRequest: {cmd}\nOutput JSON:"
+        stop_tokens = []
+    else: # ssh
+        history_text = "\n".join(f"$ {h.cmd}\n{h.get_res()}" for h in req.history[-20:])
+        prompt = f"{SYSTEM_PROMPT_SSH}\n\nSession so far:\n{history_text}\n\n$ {cmd}\n"
+        stop_tokens = ["dbadmin@", "corp-prod-db-01", "\n$"]
+
+    try:
+        async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(f"{OLLAMA_HOST}/api/generate", json={
                 "model": "llama3",
                 "prompt": prompt,
                 "stream": False,
-                "options": {"temperature": 0.2, "num_predict": 250}
+                "options": {
+                    "temperature": 0.2, 
+                    "num_predict": 150,
+                    "stop": stop_tokens
+                }
             })
-            output = resp.json().get("response", "bash: command not found")
+            print(f"[AI-ENGINE] Ollama status: {resp.status_code}, response text: {resp.text}", flush=True)
+            
+            fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"
+            output = resp.json().get("response", fallback)
+            
+            # Strip hallucinatory prompts from output just in case
+            if service == "ssh":
+                for token in stop_tokens:
+                    if token in output:
+                        output = output.split(token)[0]
+            output = output.strip()
+            
             # Cache for 1 hour
-            cache.setex(key, 3600, output)
-            return output
+            try:
+                cache.setex(key, 3600, output)
+            except:
+                pass
+                
+            return {"response": output}
     except Exception as e:
-        return f"bash: {cmd}: command not found"
+        print(f"[AI-ENGINE] Error connecting to Ollama: {e}")
+        fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"
+        return {"response": fallback}

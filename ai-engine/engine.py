@@ -122,6 +122,8 @@ async def get_response(req: AIRequest):
     if service == "ssh":
         if cmd in STATIC:
             return {"response": STATIC[cmd]}
+        elif cmd.startswith("sudo "):
+            return {"response": "[sudo] password for dbadmin:"}
         elif cmd.startswith("cd ") or cmd.startswith("mkdir ") or cmd.startswith("touch ") or cmd.startswith("rm ") or cmd.startswith("export "):
             # State-altering commands that don't produce stdout return instantly
             return {"response": ""}
@@ -164,7 +166,7 @@ async def get_response(req: AIRequest):
                 "model": "llama3",
                 "prompt": prompt,
                 "stream": False,
-                "keep_alive": "-1", # Priority 1: Prevent model cold starts
+                "keep_alive": -1, # Priority 1: Prevent model cold starts
                 "options": {
                     "temperature": 0.1, # Lower temp for faster token selection
                     "num_predict": 100, # Cap generation to prevent runaway output

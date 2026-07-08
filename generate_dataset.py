@@ -117,16 +117,20 @@ CICD_ATTACKS = [
 ]
 
 dataset = []
+import uuid
 for cmd in SSH_ATTACKS:
-    dataset.append({"service": "ssh", "command": cmd, "history": []})
+    dataset.append({"service": "ssh", "command": cmd + f" # {uuid.uuid4().hex[:8]}", "history": []})
 for cmd in SQL_ATTACKS:
-    dataset.append({"service": "sql", "command": cmd, "history": []})
+    # Append a SQL comment
+    dataset.append({"service": "sql", "command": cmd + f" /* {uuid.uuid4().hex[:8]} */", "history": []})
 for cmd in WEB3_ATTACKS:
-    dataset.append({"service": "web3", "command": cmd, "history": []})
+    # Just replace something or add a dummy param to make it unique
+    dataset.append({"service": "web3", "command": cmd.replace('"id":1', f'"id": "{uuid.uuid4().hex[:8]}"'), "history": []})
 for cmd in API_ATTACKS:
-    dataset.append({"service": "api", "command": cmd, "history": []})
+    # Add a dummy field
+    dataset.append({"service": "api", "command": cmd.replace('}', f', "nonce": "{uuid.uuid4().hex[:8]}"}}'), "history": []})
 for cmd in CICD_ATTACKS:
-    dataset.append({"service": "cicd", "command": cmd, "history": []})
+    dataset.append({"service": "cicd", "command": cmd.replace('}', f', "nonce": "{uuid.uuid4().hex[:8]}"}}'), "history": []})
 
 random.shuffle(dataset)
 

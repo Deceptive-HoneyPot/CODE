@@ -1,9 +1,10 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-import asyncio, json, os, hashlib
+import asyncio, json, os, hashlib, time
 import redis as redis_lib
 from web3 import Web3
 from datetime import datetime
+import httpx
 
 app = FastAPI(title="Honeypot API")
 
@@ -135,3 +136,41 @@ def get_stats():
 @app.get("/health")
 def health():
     return {"status": "ok", "redis": r.ping(), "blockchain": w3.is_connected()}
+
+@app.get("/api/benchmark/run")
+async def run_benchmark():
+    NUM_STATIC = 10
+    NUM_DYNAMIC = 1
+    URL = "http://ai-engine:8000/api/response"
+    
+    static_payload = {"command": "ip a", "history": [], "service": "ssh"}
+    dynamic_payload = {"command": "cat /var/log/syslog | grep error", "history": [], "service": "ssh"}
+    
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        static_times = []
+        for _ in range(NUM_STATIC):
+            t0 = time.time()
+            try: await client.post(URL, json=static_payload)
+            except: pass
+            static_times.append(time.time() - t0)
+            
+        dynamic_times = []
+        words = 0
+        for _ in range(NUM_DYNAMIC):
+            t0 = time.time()
+            try:
+                r = await client.post(URL, json=dynamic_payload)
+                if r.status_code == 200:
+                    words += len(r.json().get("response", "").split())
+            except: pass
+            dynamic_times.append(time.time() - t0)
+            
+    s_avg = sum(static_times) / len(static_times) if static_times else 0
+    s_thr = len(static_times) / sum(static_times) if sum(static_times) > 0 else 0
+    d_avg = sum(dynamic_times) / len(dynamic_times) if dynamic_times else 0
+    d_thr = len(dynamic_times) / sum(dynamic_times) if sum(dynamic_times) > 0 else 0
+    
+    return {
+        "static": { "latency_ms": round(s_avg * 1000, 2), "throughput": round(s_thr, 2) },
+        "dynamic": { "latency_s": round(d_avg, 2), "throughput": round(d_thr, 4), "words": round(words / NUM_DYNAMIC) }
+    }

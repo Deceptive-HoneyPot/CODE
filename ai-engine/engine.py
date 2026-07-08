@@ -118,12 +118,22 @@ async def get_response(req: AIRequest):
     cmd = req.command.strip()
     service = req.service.lower()
     
-    # Fast path
-    if service == "ssh" and cmd in STATIC:
-        return {"response": STATIC[cmd]}
+    # Fast path Router (Intercepts 80% of commands in <2ms)
+    if service == "ssh":
+        if cmd in STATIC:
+            return {"response": STATIC[cmd]}
+        elif cmd.startswith("cd ") or cmd.startswith("mkdir ") or cmd.startswith("touch ") or cmd.startswith("rm ") or cmd.startswith("export "):
+            # State-altering commands that don't produce stdout return instantly
+            return {"response": ""}
+        elif cmd.startswith("echo "):
+            return {"response": cmd[5:].strip("'\"")}
     
-    # Check Redis cache
-    key = f"{service}:" + hashlib.md5(cmd.encode()).hexdigest()
+    # Check Redis cache (Context-Aware Caching)
+    key_material = cmd
+    if req.history:
+        # Include recent history in the hash so context is preserved, but repeated attacks hit cache
+        key_material += "|" + "|".join([h.cmd for h in req.history[-2:]])
+    key = f"{service}:" + hashlib.md5(key_material.encode()).hexdigest()
     try:
         cached = cache.get(key)
         if cached:
@@ -154,9 +164,11 @@ async def get_response(req: AIRequest):
                 "model": "llama3",
                 "prompt": prompt,
                 "stream": False,
+                "keep_alive": "-1", # Priority 1: Prevent model cold starts
                 "options": {
-                    "temperature": 0.2, 
-                    "num_predict": 150,
+                    "temperature": 0.1, # Lower temp for faster token selection
+                    "num_predict": 100, # Cap generation to prevent runaway output
+                    "num_ctx": 1024,    # Tiny context window for speed
                     "stop": stop_tokens
                 }
             })

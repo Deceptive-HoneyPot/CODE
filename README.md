@@ -104,17 +104,25 @@ Dashboard: http://localhost:3000 · Backend API: http://localhost:3001
 ## Evaluation
 
 `evaluate.py` measures the system against a static-honeypot baseline using
-three independent, reproducible metrics instead of a single unexplained
+four independent, reproducible metrics instead of a single unexplained
 score:
 
-1. **Latency / throughput** — static fast-path vs. LLM-backed path, N trials
-   each, mean/median/stdev reported.
-2. **Response diversity** — fraction of distinct outputs across the 100-item
+1. **Sequential latency / throughput** — static fast-path vs. LLM-backed
+   path, one request at a time, N trials each, mean/median/stdev reported.
+2. **Concurrent throughput** — `CONCURRENCY_LEVEL` simultaneous requests
+   fired at once (default 10), measuring sustained req/s under concurrent
+   attacker sessions rather than one-at-a-time latency.
+3. **Response diversity** — fraction of distinct outputs across the 100-item
    APT dataset, as a proxy for resistance to signature-based fingerprinting.
-3. **LLM-judge realism score** — a second, independent LLM call rates each
+4. **LLM-judge realism score** — a second, independent LLM call rates each
    response 1-5 on how convincingly it imitates a real system. This is an
    automated proxy metric, not a human-subject study — see `evaluate.py`
    and the paper's Limitations section for the exact prompt and caveats.
+
+See `BENCHMARK_REPORT.md` for a documented latency/throughput optimization
+pass (connection pooling, tuned generation length, widened static
+dictionary) with real before/after numbers — a ~3x latency improvement at
+a small, honestly-reported realism-score cost.
 
 ```bash
 set -a; source .env; set +a

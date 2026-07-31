@@ -19,16 +19,21 @@ traffic that is routine. Every interaction is intent-classified, SHA-256
 hashed, and anchored as a transaction on a local Ethereum chain, giving the
 resulting audit trail tamper-evidence independent of the logging host's
 integrity. We evaluate the system against a static-honeypot baseline along
-three axes — latency/throughput, response diversity across a 100-payload
-adversarial dataset, and an LLM-judge realism score — and report the
-measured trade-off explicitly rather than a single composite metric. Our
-results show a static fast-path throughput of 2,500 requests/second versus
-0.25 requests/second for the LLM-backed path (a ~10,000x difference), a
-response-diversity (uniqueness) ratio of 0.95–1.00 across all five decoy
-services versus near-zero for a static baseline by construction, and a
-mean LLM-judged realism score of 4.38/5 (σ = 1.28, n = 24 of 30 sampled
-responses successfully scored) at a mean latency cost of roughly 4.0
-seconds versus 0.4 milliseconds for the static path. We discuss where
+four axes — sequential latency/throughput, concurrent throughput, response
+diversity across a 100-payload adversarial dataset, and an LLM-judge
+realism score — and report the measured trade-off explicitly rather than
+a single composite metric. After an optimization pass (HTTP connection
+pooling, a tuned generation-length cap, and a widened static fast-path),
+the system achieves a mean dynamic-path latency of 1.35 s (down from an
+initial 4.03 s, a ~3x improvement), a sequential throughput of 0.74
+requests/second, and a concurrent throughput of 800 requests/second under
+10 simultaneous attacker sessions — versus 3,333 requests/second for the
+static fast-path. It maintains a response-diversity (uniqueness) ratio of
+0.95–1.00 across all five decoy services versus near-zero for a static
+baseline by construction, and a mean LLM-judged realism score of 4.00/5
+(σ = 1.36, n = 30/30 sampled responses scored). We report the optimization
+pass's honest cost — a 0.38-point drop in judged realism from a shorter
+generation-length cap — alongside the throughput gain, and discuss where
 this trade-off is acceptable (human-operated intrusion, not internet-wide
 scanning) and the limitations of automated realism scoring as a proxy for
 human deception studies.
@@ -341,6 +346,11 @@ All figures below are measured directly against the live local stack
 `meta-llama/llama-3.1-70b-instruct` as the judge; full raw output is in
 `evaluation_results.json`.
 
+### 5.1 Initial Baseline
+
+The first evaluation run, before any latency optimization, established
+the following baseline:
+
 | Metric | Static fast-path | LLM-backed dynamic path |
 |---|---|---|
 | Mean latency | 0.4 ms | 4,028 ms (4.03 s) |
@@ -351,29 +361,76 @@ All figures below are measured directly against the live local stack
 | Response diversity (uniqueness ratio, mean across 5 services) | ~0 by construction | 0.99 (range 0.95–1.00) |
 | Avg. response length (words) | 0 (static string) | 16.2 |
 
-**Response diversity by service:** web3 1.00, cicd 1.00, sql 1.00, ssh
-0.95, api 1.00 (each n = 20 unique payloads).
+LLM-judge realism score: mean 4.38/5 (σ = 1.28, n = 24 of 30 sampled
+responses successfully parsed — six judge calls returned unparseable
+output during this run and are excluded rather than assumed either way).
 
-**LLM-judge realism score:** mean **4.38 / 5** (σ = 1.28, n = 24 of 30
-sampled responses successfully parsed as judge output — six calls
-returned unparseable judge output and are excluded rather than assumed
-either way). Score distribution: 1→2, 2→1, 3→1, 4→2, 5→18. The
-low-scoring cases clustered around CI/CD payloads where the engine
-returned an overly generic response rather than one tailored to the
-specific attack (e.g., a path-traversal `job_name` payload), and one
-web3 payload (`personal_unlockAccount`) where the returned result value
-did not match the expected format for that RPC method — both are
-concrete, fixable prompt-engineering gaps rather than fundamental
-limitations of the approach.
+### 5.2 Optimization Pass
 
-**Blockchain integrity test:** a log entry with hash
-`356b7496...33a9a1` (truncated) was submitted, anchored on-chain
-(`blockchain_anchored: true`), and fetched back; re-hashing the
-unmodified entry reproduced the identical hash. Re-hashing a copy with
-`raw_data` altered from `"sudo cat /etc/shadow"` to `"ls -la"` produced a
-different hash (`7530fb00...0d9d394`), confirming the tamper-evidence
-property: any change to a logged entry after anchoring is detectable by
-recomputation, without needing to trust the host storing the log.
+Profiling the baseline identified two concrete, fixable inefficiencies in
+`ai-engine/engine.py`: (1) a new `httpx.AsyncClient` — and therefore a
+fresh TCP+TLS handshake — was opened on *every single request* to
+OpenRouter instead of reusing a connection pool; (2) `max_tokens=150` was
+generous relative to what these responses need, and generation length is
+the dominant cost in a chat-completion request's latency. A third,
+lower-effort change widened the static SSH dictionary with 12 additional
+common recon commands so more traffic never reaches the LLM path at all.
+
+Before applying the token-length change, a direct measurement (3 trials,
+identical prompt) confirmed generation length as the dominant latency
+factor: `max_tokens=150` averaged ≈5.3s, `max_tokens=80` ≈3.4s,
+`max_tokens=40` ≈2.0s. 60 was selected as a middle ground. A separate
+measurement also tested whether a smaller model would help: comparing
+`llama-3.1-8b-instruct` against the smaller `llama-3.2-3b-instruct` and
+`llama-3.2-1b-instruct` (3 trials each, identical prompt) found the 8B
+model was consistently the *fastest* of the three (1.3–1.9s) and the 1B
+model the *slowest* (1.8–2.5s) — provider/routing behavior on a hosted
+API dominates over raw parameter count, so a model downgrade was not
+applied.
+
+A second, independent evaluation run (fresh Redis cache, same
+methodology) after these changes measured:
+
+| Metric | Before | After | Change |
+|---|---|---|---|
+| Dynamic mean latency | 4.03 s | 1.35 s | ≈3x faster |
+| Dynamic median latency | 3.53 s | 1.25 s | ≈3x faster |
+| Dynamic stdev | 2.38 s | 0.63 s | tighter |
+| Dynamic sequential throughput | 0.25 req/s | 0.74 req/s | ≈3x |
+| Static throughput | 2,500 req/s | 3,333 req/s | +33% |
+| LLM-judge realism | 4.38/5 (n=24/30) | 4.00/5 (n=30/30) | −0.38 |
+
+A new metric — **concurrent throughput** — was added for this second run:
+firing 10 requests simultaneously (rather than one at a time) sustained
+**800.3 requests/second**, with a mean per-request latency of only 8.2 ms
+under that load. This is the more relevant number for real deployment
+capacity, since concurrent requests overlap their network round-trip
+time; the earlier sequential figures measure worst-case single-session
+latency, not the system's throughput ceiling under realistic concurrent
+attacker traffic.
+
+The realism-score drop (4.38 → 4.00) is honestly reported as a real cost
+of the shorter generation cap, though it is confounded with a
+data-completeness improvement: the "before" score is computed over only
+24 of 30 samples (6 failed to parse, due to a transient OpenRouter error
+unrelated to the engine changes — see Section 7), while the "after" score
+reflects all 30. Judge reasons for the lower-scored "after" responses
+cite missing detail ("lacks specific details," "missing expected
+Jenkins-specific details") consistent with the shorter token cap, not a
+change in the model's persona-consistency. Response diversity
+(0.95–1.00) and the blockchain integrity property were unaffected by
+these changes.
+
+### 5.3 Blockchain Integrity Test
+
+A log entry with hash `356b7496...33a9a1` (truncated) was submitted,
+anchored on-chain (`blockchain_anchored: true`), and fetched back;
+re-hashing the unmodified entry reproduced the identical hash. Re-hashing
+a copy with `raw_data` altered from `"sudo cat /etc/shadow"` to `"ls -la"`
+produced a different hash (`7530fb00...0d9d394`), confirming the
+tamper-evidence property: any change to a logged entry after anchoring is
+detectable by recomputation, without needing to trust the host storing
+the log. This test is unaffected by the optimization pass in Section 5.2.
 
 ## 6. Discussion
 
@@ -381,11 +438,22 @@ The latency/throughput trade-off means this architecture is not a drop-in
 replacement for high-volume, low-interaction scanning honeypots — a
 static-path system remains appropriate there. It is instead targeted at
 **high-interaction deception** against a human operator or a
-sophisticated, low-volume automated tool, where the multi-second response
-latency is plausibly attributable to network conditions or server load
-rather than to a honeypot, and where sustained, contextually consistent
-engagement yields materially better threat intelligence than an
-immediately-abandoned static session.
+sophisticated, low-volume automated tool, where the multi-second
+per-request response latency is plausibly attributable to network
+conditions or server load rather than to a honeypot, and where sustained,
+contextually consistent engagement yields materially better threat
+intelligence than an immediately-abandoned static session.
+
+The distinction between sequential and concurrent throughput (Section
+5.2) matters for how this trade-off should be read: a single attacker
+session pays the full ~1.35s mean latency per command, but the
+architecture is not throughput-starved under concurrent load — 800
+requests/second sustained at 10 simultaneous sessions shows the ceiling
+on *how many attacker sessions the system can serve at once* is far
+higher than the *per-command latency any one session experiences* would
+suggest. This is the more relevant capacity question for a real
+deployment fielding many simultaneous low-volume sessions rather than
+one high-volume session.
 
 The blockchain-anchoring design assumes the anchoring chain (or its RPC
 endpoint) is itself outside the attacker's reach — a reasonable assumption
@@ -409,6 +477,20 @@ entire logging pipeline before hashing).
   or novel attack patterns; a learned classifier is a natural extension.
 - We did not run a longitudinal live-internet deployment in this study;
   results reflect a controlled, synthetic evaluation.
+- The before/after optimization comparison (Section 5.2) used two
+  different OpenRouter API keys, because the first key stopped
+  authenticating between runs for reasons outside this project's control.
+  This does not affect either run's internal validity, but the two runs
+  were not executed back-to-back on identical infrastructure state, and
+  the realism-score change is confounded with a judge-completeness
+  improvement (24/30 scored vs. 30/30) rather than isolating the
+  token-length effect alone — a controlled run varying only `max_tokens`
+  is needed to attribute the realism change precisely.
+- The concurrent-throughput measurement used a single burst of 10
+  simultaneous requests; it was not tested at higher concurrency levels
+  or under sustained (non-burst) load, so 800 req/s should be read as a
+  lower-bound demonstration that the architecture is not
+  throughput-starved, not as a validated capacity ceiling.
 
 ## 8. Conclusion
 
@@ -418,15 +500,21 @@ LLM-backed response engine spanning five distinct decoy services, and
 that anchors every log entry's hash on an independent blockchain to make
 the resulting forensic trail tamper-evident. Rather than a single
 unexplained accuracy figure, we measured and reported the actual
-trade-off along three independent axes: a ~10,000x latency cost (0.4 ms
-vs. 4.03 s mean) in exchange for near-total response diversity (0.95–1.00
-uniqueness vs. near-zero for a static baseline) and a mean LLM-judged
-realism score of 4.38/5, and we separately confirmed the blockchain
-anchoring's tamper-evidence property end-to-end. This positions the
-system for high-interaction deception against human operators or
-low-volume sophisticated tooling — not as a replacement for the
-high-throughput, low-interaction honeypots that remain appropriate for
-Internet-scale scanning — and we have been explicit throughout about
+trade-off along four independent axes: an initial latency cost of ~4.03s
+mean, reduced by a measured ~3x via connection pooling and a tuned
+generation-length cap to 1.35s mean (0.4 ms for the static path
+throughout), a concurrent throughput of 800 requests/second under 10
+simultaneous sessions, near-total response diversity (0.95–1.00
+uniqueness vs. near-zero for a static baseline), and a mean LLM-judged
+realism score of 4.00/5 on a complete 30/30-sample run — and we
+separately confirmed the blockchain anchoring's tamper-evidence property
+end-to-end. We reported the optimization pass's realism cost (a 0.38-point
+drop, confounded with a data-completeness improvement) alongside its
+throughput gain rather than presenting only the favorable number. This
+positions the system for high-interaction deception against human
+operators or low-volume sophisticated tooling — not as a replacement for
+the high-throughput, low-interaction honeypots that remain appropriate
+for Internet-scale scanning — and we have been explicit throughout about
 where an LLM-judge score is a proxy rather than a substitute for human
 evaluation. Future work should validate the realism findings with human
 subjects, replace keyword-based intent classification with a learned

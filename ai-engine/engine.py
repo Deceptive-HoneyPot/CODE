@@ -13,10 +13,29 @@ REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct")
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
+OPENROUTER_MAX_TOKENS = int(os.getenv("OPENROUTER_MAX_TOKENS", "60"))
+CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "21600"))  # 6h, was 1h
 
 cache = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
 app = FastAPI(title="Honeypot AI Engine")
+
+# Reuse one pooled async client for the process lifetime instead of opening a
+# new TCP+TLS connection to OpenRouter on every request.
+_http_client: httpx.AsyncClient | None = None
+
+
+@app.on_event("startup")
+async def _init_http_client():
+    global _http_client
+    limits = httpx.Limits(max_connections=100, max_keepalive_connections=50)
+    _http_client = httpx.AsyncClient(timeout=60.0, limits=limits)
+
+
+@app.on_event("shutdown")
+async def _close_http_client():
+    if _http_client is not None:
+        await _http_client.aclose()
 
 STATIC = {
     "ls": "bin  boot  dev  etc  home  lib  media  opt  proc  root  run  srv  sys  tmp  usr  var",
@@ -62,6 +81,22 @@ ID=ubuntu""",
     "ps aux":       "root      1  0.0  0.1 /sbin/init\npostgres  523  0.0  0.2 postgres\ndbadmin   1204 0.0  0.0 -bash",
     "env":          "HOME=/home/dbadmin\nPATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin\nDB_PASS=S3cr3tPa$$w0rd\nDB_HOST=192.168.1.200",
     "history":      "  1  ssh root@192.168.1.200\n  2  mysql -u root -p\n  3  ls /var/backups\n  4  tar czf backup.tar.gz /var/www",
+    # Additional common recon/enumeration commands answered from the static
+    # fast-path so they never touch the LLM — widens throughput coverage.
+    "id -a":        "uid=1000(dbadmin) gid=1000(dbadmin) groups=1000(dbadmin),27(sudo)",
+    "hostname":     "corp-prod-db-01",
+    "date":         "Mon Jun 23 14:35:02 UTC 2025",
+    "which python3": "/usr/bin/python3",
+    "which python": "/usr/bin/python3",
+    "python3 --version": "Python 3.10.12",
+    "df -h":        "Filesystem      Size  Used Avail Use% Mounted on\n/dev/sda1        40G   14G   24G  37% /\ntmpfs           2.0G     0  2.0G   0% /dev/shm",
+    "free -h":      "               total        used        free      shared  buff/cache   available\nMem:           7.8Gi       1.2Gi       4.9Gi       128Mi       1.7Gi       6.3Gi\nSwap:             0B          0B          0B",
+    "cat /etc/hostname": "corp-prod-db-01",
+    "lsb_release -a": "No LSB modules are available.\nDistributor ID: Ubuntu\nDescription:    Ubuntu 22.04.3 LTS\nRelease:        22.04\nCodename:       jammy",
+    "uname -r":     "5.15.0-91-generic",
+    "who":          "dbadmin  pts/0        2025-06-23 14:32 (10.0.0.55)",
+    "w":            " 14:35:02 up 47 days,  2:21,  1 user,  load average: 0.08, 0.12, 0.09\nUSER     TTY      FROM             LOGIN@   IDLE   JCPU   PCPU WHAT\ndbadmin  pts/0    10.0.0.55        14:32    0.00s  0.03s  0.00s -bash",
+    "sudo -l":      "Matching Defaults entries for dbadmin on corp-prod-db-01:\n    env_reset, mail_badpass\n\nUser dbadmin may run the following commands on corp-prod-db-01:\n    (ALL : ALL) ALL",
 }
 
 SYSTEM_PROMPT_SSH = """You are simulating the raw stdout/stderr of a bash shell on an Ubuntu 22.04 server.
@@ -173,48 +208,46 @@ async def get_response(req: AIRequest):
         stop_tokens = ["dbadmin@", "corp-prod-db-01", "\n$"]
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                OPENROUTER_URL,
-                headers={
-                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": OPENROUTER_MODEL,
-                    "messages": [
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    "temperature": 0.1,
-                    "max_tokens": 150,
-                    "stop": stop_tokens or None,
-                },
-            )
-            print(f"[AI-ENGINE] OpenRouter status: {resp.status_code}", flush=True)
-            body = resp.json()
+        resp = await _http_client.post(
+            OPENROUTER_URL,
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": OPENROUTER_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt},
+                ],
+                "temperature": 0.1,
+                "max_tokens": OPENROUTER_MAX_TOKENS,
+                "stop": stop_tokens or None,
+            },
+        )
+        print(f"[AI-ENGINE] OpenRouter status: {resp.status_code}", flush=True)
+        body = resp.json()
 
-            fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"
-            output = None
-            if resp.status_code == 200:
-                output = body.get("choices", [{}])[0].get("message", {}).get("content")
-            if not output:
-                output = fallback
+        fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"
+        output = None
+        if resp.status_code == 200:
+            output = body.get("choices", [{}])[0].get("message", {}).get("content")
+        if not output:
+            output = fallback
 
-            # Strip hallucinatory prompts from output just in case
-            if service == "ssh":
-                for token in stop_tokens:
-                    if token in output:
-                        output = output.split(token)[0]
-            output = output.strip()
+        # Strip hallucinatory prompts from output just in case
+        if service == "ssh":
+            for token in stop_tokens:
+                if token in output:
+                    output = output.split(token)[0]
+        output = output.strip()
 
-            # Cache for 1 hour
-            try:
-                cache.setex(key, 3600, output)
-            except:
-                pass
+        try:
+            cache.setex(key, CACHE_TTL_SECONDS, output)
+        except Exception:
+            pass
 
-            return {"response": output}
+        return {"response": output}
     except Exception as e:
         print(f"[AI-ENGINE] Error connecting to OpenRouter: {e}")
         fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"

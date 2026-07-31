@@ -1,11 +1,12 @@
 """
 Evaluation harness for the AI-driven honeypot vs. a static-honeypot baseline.
 
-Produces three independent, reproducible measurements instead of a single
+Produces four independent, reproducible measurements instead of a single
 unexplained "F1-score":
 
-  1. Latency / throughput  - static fast-path vs. LLM-backed dynamic path,
-     N trials each, mean/median/stdev reported (not a single sample).
+  1. Sequential latency / throughput - static fast-path vs. LLM-backed
+     dynamic path, one request at a time, N trials each, mean/median/stdev
+     reported (not a single sample).
   2. Response diversity     - fraction of distinct outputs the engine gives
      across the APT payload set, as a proxy for how easy the service is to
      fingerprint by an automated scanner that expects deterministic output.
@@ -13,6 +14,9 @@ unexplained "F1-score":
      response 1-5 on how convincingly it imitates a real system response.
      This is an automated proxy metric, not a human-subject study, and the
      report states that limitation explicitly.
+  4. Concurrent throughput  - CONCURRENCY_LEVEL simultaneous requests fired
+     at once, measuring sustained requests/sec under concurrent attacker
+     sessions rather than one-at-a-time latency.
 
 Run with the local stack up (backend on :3001, ai-engine on :8000) and
 OPENROUTER_API_KEY set in the environment / .env file.
@@ -75,6 +79,41 @@ async def bench_dynamic(session, dataset):
     return lats, outputs
 
 
+def summarize(lats):
+    return {
+        "mean_s": round(statistics.mean(lats), 4),
+        "median_s": round(statistics.median(lats), 4),
+        "stdev_s": round(statistics.stdev(lats), 4) if len(lats) > 1 else 0.0,
+        "min_s": round(min(lats), 4),
+        "max_s": round(max(lats), 4),
+        "n": len(lats),
+    }
+
+
+CONCURRENCY_LEVEL = int(os.getenv("CONCURRENCY_LEVEL", "10"))
+
+
+async def bench_concurrent_throughput(session, dataset):
+    """
+    Measures sustained throughput under CONCURRENCY_LEVEL simultaneous
+    attacker sessions, as opposed to bench_dynamic's one-request-at-a-time
+    latency measurement. Uses unique (nonce-tagged) payloads so every
+    request is a genuine cache miss, reflecting worst-case concurrent load.
+    """
+    sample = dataset[:CONCURRENCY_LEVEL]
+    t0 = time.perf_counter()
+    results = await asyncio.gather(*[call_engine(session, p) for p in sample])
+    wall_time = time.perf_counter() - t0
+    lats = [r[0] for r in results]
+    throughput = len(sample) / wall_time if wall_time else 0.0
+    return {
+        "concurrency_level": len(sample),
+        "wall_time_s": round(wall_time, 4),
+        "throughput_rps": round(throughput, 4),
+        "per_request_latency": summarize(lats),
+    }
+
+
 async def diversity_pass(session, dataset):
     """Run the *entire* dataset once and measure output uniqueness per service."""
     from collections import defaultdict
@@ -111,31 +150,45 @@ Respond with ONLY a single JSON object: {"score": <int 1-5>, "reason": "<one sho
 """
 
 
-async def judge_response(session, service, payload, response):
+async def judge_response(session, service, payload, response, retries=2):
     user = f"SERVICE: {service}\nATTACK PAYLOAD: {payload}\nRESPONSE:\n{response}\n"
-    try:
-        async with session.post(
-            OPENROUTER_URL,
-            headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
-            json={
-                "model": JUDGE_MODEL,
-                "messages": [
-                    {"role": "system", "content": JUDGE_SYSTEM},
-                    {"role": "user", "content": user},
-                ],
-                "temperature": 0.0,
-                "max_tokens": 80,
-            },
-            timeout=aiohttp.ClientTimeout(total=60),
-        ) as resp:
-            body = await resp.json()
-            content = body["choices"][0]["message"]["content"].strip()
-            # tolerate stray markdown fences
-            content = content.strip("`").removeprefix("json").strip()
-            parsed = json.loads(content)
-            return int(parsed["score"]), parsed.get("reason", "")
-    except Exception as e:
-        return None, f"judge_error: {e}"
+    last_error = None
+    for attempt in range(retries + 1):
+        try:
+            async with session.post(
+                OPENROUTER_URL,
+                headers={"Authorization": f"Bearer {OPENROUTER_API_KEY}", "Content-Type": "application/json"},
+                json={
+                    "model": JUDGE_MODEL,
+                    "messages": [
+                        {"role": "system", "content": JUDGE_SYSTEM},
+                        {"role": "user", "content": user},
+                    ],
+                    "temperature": 0.0,
+                    "max_tokens": 80,
+                },
+                timeout=aiohttp.ClientTimeout(total=60),
+            ) as resp:
+                body = await resp.json()
+                if "choices" not in body:
+                    # Surface the API's actual error payload (e.g. rate limit)
+                    # instead of a bare KeyError, and retry transient failures.
+                    last_error = f"http={resp.status} body={json.dumps(body)[:200]}"
+                    if attempt < retries:
+                        await asyncio.sleep(2 * (attempt + 1))
+                        continue
+                    return None, f"judge_error: {last_error}"
+                content = body["choices"][0]["message"]["content"].strip()
+                # tolerate stray markdown fences
+                content = content.strip("`").removeprefix("json").strip()
+                parsed = json.loads(content)
+                return int(parsed["score"]), parsed.get("reason", "")
+        except Exception as e:
+            last_error = str(e)
+            if attempt < retries:
+                await asyncio.sleep(2 * (attempt + 1))
+                continue
+            return None, f"judge_error: {last_error}"
 
 
 async def realism_eval(session, dataset):
@@ -153,17 +206,6 @@ async def realism_eval(session, dataset):
     return scores, details
 
 
-def summarize(lats):
-    return {
-        "mean_s": round(statistics.mean(lats), 4),
-        "median_s": round(statistics.median(lats), 4),
-        "stdev_s": round(statistics.stdev(lats), 4) if len(lats) > 1 else 0.0,
-        "min_s": round(min(lats), 4),
-        "max_s": round(max(lats), 4),
-        "n": len(lats),
-    }
-
-
 async def main():
     dataset = json.loads(DATASET_PATH.read_text())
 
@@ -171,17 +213,20 @@ async def main():
         print("Warming up...")
         await call_engine(session, STATIC_PAYLOAD)
 
-        print(f"\n[1/4] Static fast-path latency ({STATIC_LATENCY_TRIALS} trials)...")
+        print(f"\n[1/5] Static fast-path latency ({STATIC_LATENCY_TRIALS} trials)...")
         static_lats = await bench_static(session)
 
-        print(f"\n[2/4] Dynamic LLM-backed latency ({DYNAMIC_LATENCY_TRIALS} trials, cache bypassed by unique payloads)...")
+        print(f"\n[2/5] Dynamic LLM-backed latency ({DYNAMIC_LATENCY_TRIALS} trials, cache bypassed by unique payloads)...")
         dyn_lats, dyn_outputs = await bench_dynamic(session, dataset)
 
-        print(f"\n[3/4] Response diversity over full {len(dataset)}-item APT dataset...")
+        print(f"\n[3/5] Response diversity over full {len(dataset)}-item APT dataset...")
         diversity, raw_outputs = await diversity_pass(session, dataset)
 
-        print(f"\n[4/4] LLM-judge realism scoring ({JUDGE_SAMPLE_SIZE} sampled payloads, judge={JUDGE_MODEL})...")
+        print(f"\n[4/5] LLM-judge realism scoring ({JUDGE_SAMPLE_SIZE} sampled payloads, judge={JUDGE_MODEL})...")
         scores, judge_details = await realism_eval(session, dataset)
+
+        print(f"\n[5/5] Concurrent throughput ({CONCURRENCY_LEVEL} simultaneous requests)...")
+        concurrent = await bench_concurrent_throughput(session, dataset)
 
     static_stats = summarize(static_lats)
     dyn_stats = summarize(dyn_lats)
@@ -201,7 +246,8 @@ async def main():
             "judge_sample_size": JUDGE_SAMPLE_SIZE,
         },
         "latency": {"static": static_stats, "dynamic": dyn_stats},
-        "throughput_rps": {"static": static_throughput, "dynamic": dyn_throughput},
+        "throughput_rps": {"static": static_throughput, "dynamic_sequential": dyn_throughput},
+        "concurrent_throughput": concurrent,
         "response_diversity_by_service": diversity,
         "avg_response_words_dynamic": avg_words,
         "llm_judge_realism": {

@@ -3,6 +3,7 @@ import asyncssh
 import os
 import sys
 import aiohttp
+import httpx
 import json
 from datetime import datetime
 
@@ -10,6 +11,26 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:3001")
 AI_ENGINE_URL = os.getenv("AI_ENGINE_URL", "http://ai-engine:8000")
 
 sys.path.insert(0, "/app")
+
+# Reused connection pools instead of opening a new TCP+TLS/TCP connection
+# on every single logged command or AI-engine call.
+_log_session: aiohttp.ClientSession | None = None
+_ai_client: httpx.AsyncClient | None = None
+
+
+def _get_log_session():
+    global _log_session
+    if _log_session is None or _log_session.closed:
+        _log_session = aiohttp.ClientSession()
+    return _log_session
+
+
+def _get_ai_client():
+    global _ai_client
+    if _ai_client is None:
+        _ai_client = httpx.AsyncClient(timeout=60.0, limits=httpx.Limits(max_connections=50))
+    return _ai_client
+
 
 async def send_log(attacker_ip, command, response):
     payload = {
@@ -21,24 +42,21 @@ async def send_log(attacker_ip, command, response):
         "timestamp": datetime.now().isoformat()
     }
     try:
-        async with aiohttp.ClientSession() as s:
-            await s.post(f"{BACKEND_URL}/api/log", json=payload)
-    except:
+        await _get_log_session().post(f"{BACKEND_URL}/api/log", json=payload)
+    except Exception:
         pass
 
 async def get_ai_response(command, history):
-    import httpx
     try:
         # Pass the last 20 commands for better context
         payload = {
             "command": command,
             "history": history[-20:]
         }
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            resp = await client.post(f"{AI_ENGINE_URL}/api/response", json=payload)
-            if resp.status_code == 200:
-                return resp.json().get("response", f"bash: {command}: command not found")
-            return f"bash: {command}: command not found"
+        resp = await _get_ai_client().post(f"{AI_ENGINE_URL}/api/response", json=payload)
+        if resp.status_code == 200:
+            return resp.json().get("response", f"bash: {command}: command not found")
+        return f"bash: {command}: command not found"
     except Exception as e:
         print(f"[SSH] Error calling AI engine: {e}")
         return f"bash: {command}: command not found"

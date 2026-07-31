@@ -20,36 +20,46 @@ hashed, and anchored as a transaction on a local Ethereum chain, giving the
 resulting audit trail tamper-evidence independent of the logging host's
 integrity. We evaluate the system against a static-honeypot baseline along
 four axes — sequential latency/throughput, concurrent throughput, response
-diversity, and an LLM-judge realism score — across three successive
-evaluation runs, and report the measured trade-offs explicitly rather than
-a single composite metric. After an optimization pass (HTTP connection
-pooling applied across the response engine and all five decoys, a tuned
+diversity, and an LLM-judge realism score — across four successive
+evaluation runs of increasing dataset realism and scale, and report the
+measured trade-offs and failures explicitly rather than a single
+composite metric. After an optimization pass (HTTP connection pooling
+applied across the response engine and all five decoys, a tuned
 generation-length cap, and a widened static fast-path), the system
-achieves a mean dynamic-path latency of 1.35 s (down from an
-initial 4.03 s, a ~3x improvement) against a 100-payload hand-written
-adversarial dataset, and a sequential throughput of 0.74 requests/second,
-versus 3,333 requests/second for the static fast-path. A third evaluation
-run replaced the hand-written dataset with a 200-payload dataset built
-from real, publicly-documented attack payloads (real SQLi, command-injection,
-XXE/Log4Shell/prompt-injection, Ethereum JSON-RPC, and Jenkins-exploit
-strings; see Section 5.4), which increased mean dynamic latency to 2.06 s
-— a genuine effect of longer, more structurally varied real payloads, not
-a regression — and surfaced a real weakness invisible to the hand-written
-set: response diversity on the API/prompt-injection decoy dropped from
-1.00 to 0.70 against real XXE/Log4Shell payload shapes. This same run also
-uncovered and fixed a benchmark-harness bug that had silently measured
-Redis cache-hit latency (8.2 ms, reported as "800 requests/second") instead
-of genuine concurrent LLM throughput; the corrected concurrent-throughput
-figure is 1.62 requests/second at a mean per-request latency of 3.09 s
-under 10 simultaneous sessions. Response diversity otherwise remained high
-(0.80–1.00 across four of five services) versus near-zero for a static
-baseline by construction, and the mean LLM-judged realism score was stable
-across all three runs (4.00–4.03/5). We report each run's numbers, the
-harness bug, and its correction explicitly rather than presenting only the
-most favorable figures, and discuss where the resulting trade-offs are
-acceptable (human-operated intrusion, not internet-wide scanning) and the
-limitations of automated realism scoring as a proxy for human deception
-studies.
+achieves a mean dynamic-path latency of 1.35 s (down from an initial
+4.03 s, a ~3x improvement) against a 100-payload hand-written adversarial
+dataset, and a sequential throughput of 0.74 requests/second, versus
+3,333 requests/second for the static fast-path. Two subsequent runs
+replaced the hand-written dataset with real, publicly-documented attack
+payloads (real SQLi, command-injection, XXE/Log4Shell/prompt-injection,
+Ethereum JSON-RPC, and Jenkins-exploit strings; see Sections 5.4–5.5),
+scaling from 200 to 1,328 payloads, which increased mean dynamic latency
+to ~2 s — a genuine effect of longer, more structurally varied real
+payloads, not a regression — and surfaced a real, worsening weakness
+invisible to the hand-written set: response diversity on the
+API/prompt-injection decoy fell from 1.00 (hand-written) to 0.70 (200
+real payloads) to **0.46 (1,328 real payloads)**, and the overall
+LLM-judged realism score fell to **3.37/5** at the largest scale, driven
+by that same service — 9 of 11 sampled API responses scored 1–2/5, and
+one sampled response was found to contain **an explicit AI safety
+disclaimer**, a hard deception failure rather than a minor realism
+deduction. This finding only became unambiguous at the largest dataset
+scale; it was not visible in the original 100-payload evaluation. A
+separate benchmark-harness bug was also found and fixed during this
+work: `evaluate.py` had silently measured Redis cache-hit latency (8.2 ms,
+reported as "800 requests/second") instead of genuine concurrent LLM
+throughput; the corrected figure is 3.05 requests/second at a mean
+per-request latency of 2.62 s under 10 simultaneous sessions against the
+full 1,328-item dataset. Response diversity remained high (0.83–1.00) for
+the other four of five services throughout, versus near-zero for a
+static baseline by construction. We report every run's numbers, the
+harness bug, and the API decoy's realism failure explicitly rather than
+presenting only favorable figures, and discuss where the resulting
+trade-offs are acceptable (human-operated intrusion, not internet-wide
+scanning), what the failure implies for the system's current prompt
+design, and the limitations of automated realism scoring as a proxy for
+human deception studies — including a concrete, unexecuted protocol
+(Appendix A) for closing that gap with a real human-subject study.
 
 **Keywords:** honeypot, cyber deception, large language models, blockchain,
 digital forensics, intrusion detection, adaptive defense
@@ -350,8 +360,11 @@ injection, CI/CD supply-chain payloads) each tagged with a random nonce
 to defeat caching during evaluation. Section 5.4 reports a subsequent run
 using a 200-payload dataset (40 per service) rebuilt from real,
 publicly-documented attack payload corpora rather than hand-written
-strings — see Section 5.4 and the project README for the full source
-list and rationale for the switch.
+strings; Section 5.5 reports a further re-run after scaling that same
+approach to 1,328 real payloads (500 ssh, 500 sql, 300 api, 18 web3, 10
+cicd) by drawing from larger public corpora — see Sections 5.4–5.5 and
+the project README for the full source list and rationale for each
+switch.
 
 ### 4.2 Metrics
 
@@ -597,6 +610,72 @@ of this evaluation and a benchmark bug this large (three orders of
 magnitude) is itself a relevant methodological finding for anyone citing
 or reproducing this work.
 
+### 5.5 Fourth Run: Scaling the Real Dataset to 1,328 Payloads
+
+Section 5.4's 200-payload real dataset was itself a small sample of the
+real payload corpora it drew from (payload-box, PayloadsAllTheThings).
+To test whether the `api` diversity weakness Section 5.4 found was
+representative or an artifact of a small sample, `generate_dataset.py`
+was extended to draw from substantially larger real corpora —
+`danielmiessler/SecLists`' `command-injection-commix.txt` (8,956 unique
+real command-injection strings from the commix exploitation tool) and its
+`sqlmap`-derived risk-classified SQLi payload sets (474 unique real
+strings) — growing the dataset to **1,328 real payloads**: 500 ssh, 500
+sql, 300 api, 18 web3, 10 cicd. web3 and cicd were deliberately not
+scaled further, since no comparably large public corpus of "web3 attack
+payloads" or "Jenkins attack payloads" exists — their real attack surface
+is a small, finite set of documented API methods and endpoints, not an
+open space of injection strings, so forcing those two to 500 as well
+would mean padding with fabricated content rather than more real data.
+`evaluate.py` was re-run in full against this larger dataset live against
+the running stack; the diversity pass alone made 1,328 real LLM calls.
+
+| Metric | 200-item real dataset | 1,328-item real dataset |
+|---|---|---|
+| Dynamic latency (mean) | 2.06 s | 1.95 s |
+| Concurrent throughput (10 sessions) | 1.62 req/s | 3.05 req/s |
+| Response diversity (ssh) | 0.925 | 0.964 |
+| Response diversity (sql) | 1.00 | 0.978 |
+| Response diversity (web3) | 0.80 | 0.833 |
+| Response diversity (cicd) | 0.90 | 1.00 |
+| Response diversity (api) | 0.70 | **0.46** |
+| LLM-judge realism (mean) | 4.03/5 | **3.37/5** |
+| LLM-judge distribution | 1:4·2:2·3:2·4:3·5:19 | 1:10·2:3·3:0·4:0·5:17 |
+
+**This larger run is the single most consequential result in this paper's
+evaluation history.** The `api` weakness Section 5.4 found (diversity
+0.70) was not a small-sample artifact — it deepened to **0.46** at scale
+(138 distinct responses across 300 real XXE/Log4Shell/prompt-injection
+requests), and the judge-realism mean fell from 4.03/5 to **3.37/5**
+overall, driven almost entirely by the `api` service: in the 30-item
+judge sample, 11 payloads were `api`, and **9 of those 11 scored 1–2/5**,
+versus near-uniform 5/5 scores for ssh, sql, and web3 in the same sample.
+The judge's stated reasons are specific and repeat across independent
+samples — *"generic, templated error message with no relation to the XML
+payload,"* *"does not acknowledge the XXE attack"* — and, more seriously,
+one sampled response was flagged for containing **an explicit AI safety
+disclaimer** (*"Contains an explicit disclaimer about not generating
+harmful responses"*). A honeypot response that states outright it is an
+AI declining to help is not a minor realism deduction; it is close to the
+worst possible outcome for a deception system, since it immediately signals
+"this is not a real system" to exactly the attentive, manually-probing
+attacker this architecture is designed to hold. We had no evidence of
+this failure mode before scaling the dataset — it did not appear in
+Section 5.4's 200-item run's smaller `api` sample.
+
+This is now the paper's most concrete, actionable finding: `oracle-ai`'s
+system prompt (`ai-engine/engine.py`) needs (1) few-shot examples of
+plausible vulnerable-service responses to XXE/Log4Shell/SSRF payload
+shapes specifically, since the model currently falls back to a generic
+refusal-shaped response when it does not recognize the payload as an
+ordinary chat message, and (2) an explicit instruction against ever
+emitting safety-disclaimer language, since the underlying hosted model's
+own safety training measurably bleeds through the deception persona on a
+non-trivial fraction of adversarial XML/JNDI inputs. We report this as an
+open problem rather than a fixed one — fixing the prompt and re-measuring
+is the natural next evaluation run, left as follow-up work rather than
+retrofitted into this paper's numbers.
+
 ## 6. Discussion
 
 The latency/throughput trade-off means this architecture is not a drop-in
@@ -610,22 +689,50 @@ contextually consistent engagement yields materially better threat
 intelligence than an immediately-abandoned static session.
 
 The distinction between sequential and concurrent throughput (Section
-5.2, corrected in Section 5.4) matters for how this trade-off should be
-read, though the corrected measurement is less favorable than first
-reported: a single attacker session pays the full ~2.06s mean latency per
-command against the real-world dataset (Section 5.4), and under genuine
-concurrent load — 10 simultaneous sessions, each forced to bypass the
-Redis cache — sustained throughput is **1.62 requests/second** at a mean
-per-request latency of 3.09s, not the 800 req/s first reported (that
-figure was a benchmark-harness bug measuring Redis cache-hit latency; see
-Section 5.4). The corrected number still shows the architecture serves
-concurrent sessions without the LLM round-trip time compounding linearly
-per session — 10 concurrent requests complete in 6.16s wall-clock, not
-~20s (10 × 2.06s) — but the concurrency headroom is real, not the
-three-orders-of-magnitude figure the uncorrected benchmark implied. This
-is the more relevant capacity question for a real deployment fielding
-several simultaneous low-volume sessions, but it does not support a claim
-of high-volume concurrent capacity.
+5.2, corrected in Section 5.4, re-measured at scale in Section 5.5)
+matters for how this trade-off should be read, though the corrected
+measurement is less favorable than first reported: a single attacker
+session pays the full ~1.95s mean latency per command against the full
+1,328-item real dataset (Section 5.5), and under genuine concurrent load
+— 10 simultaneous sessions, each forced to bypass the Redis cache —
+sustained throughput is **3.05 requests/second** at a mean per-request
+latency of 2.62s, not the 800 req/s first reported (that figure was a
+benchmark-harness bug measuring Redis cache-hit latency; see Section
+5.4). The corrected number still shows the architecture serves concurrent
+sessions without the LLM round-trip time compounding linearly per session
+— 10 concurrent requests complete in 3.28s wall-clock, not ~20s (10 ×
+1.95s) — but the concurrency headroom is real, not the three-orders-of-
+magnitude figure the uncorrected benchmark implied. This is the more
+relevant capacity question for a real deployment fielding several
+simultaneous low-volume sessions, but it does not support a claim of
+high-volume concurrent capacity.
+
+**The API decoy's realism failure (Section 5.5) deserves direct
+discussion rather than being left as a number in a table.** A response
+that leaks an AI safety disclaimer is not a subtle fingerprinting vector
+in the Vetterl-and-Clayton sense [1] — it is an immediate, human-readable
+tell that requires no automated probing at all, only a single adversarial
+input and a moment of attacker attention. This matters more for this
+decoy specifically than it would for, say, a slightly-too-generic SQL
+error, because `oracle-ai` impersonates an *AI service* — an attacker
+probing it may already suspect they are talking to a model, so an actual
+disclaimer confirms rather than merely hints. We view this less as a
+weakness specific to this framework's engineering and more as a structural
+risk of building any AI-persona decoy on top of a hosted, safety-tuned
+model: the same alignment training that makes the underlying model safe
+for its intended use is directly adversarial to the deception goal on
+inputs the model's safety layer recognizes as concerning, and XXE/Log4Shell/
+prompt-injection payloads are exactly the class of input designed to
+trigger that recognition. A static, hand-authored response table has no
+such failure mode (it cannot "break persona") — this is a genuine cost of
+the LLM-backed approach that the response-diversity metric alone does not
+fully capture, since a diverse-but-disclaiming set of responses is not
+actually more deceptive than a repetitive one. Sections 5.5's proposed
+fix (explicit anti-disclaimer instructions and XXE/JNDI-aware few-shot
+examples) is a mitigation, not a structural solution; a model provider's
+safety behavior can change between API calls or model versions in ways
+outside this project's control, which is itself a deployment risk worth
+weighing against the realism gains an LLM-backed decoy otherwise provides.
 
 The blockchain-anchoring design assumes the anchoring chain (or its RPC
 endpoint) is itself outside the attacker's reach — a reasonable assumption
@@ -642,26 +749,20 @@ entire logging pipeline before hashing).
 - The LLM-judge realism score is an automated proxy; a human-subject study
   (as in shelLM) is necessary to validate it against real attacker
   perception.
-- Section 5.4 replaced the original 100-payload hand-curated dataset with
-  a 200-payload dataset built from real, publicly-documented attack
-  payloads, which is a meaningful improvement over hand-written strings
-  but is still not a live-traffic capture; it does not include the full
+- Sections 5.4–5.5 replaced the original 100-payload hand-curated dataset
+  with real, publicly-documented attack payloads scaled to 1,328 items,
+  which is a meaningful improvement over hand-written strings but is
+  still not a live-traffic capture; it does not include the full
   diversity of real-world attacker *behavior* (multi-step sessions,
   timing, evasion attempts) a live deployment would see, only realistic
-  single-payload content.
+  single-payload content. web3 and cicd remain small (18 and 10 payloads
+  respectively) because no comparably large real corpus exists for those
+  service types — this is a genuine coverage gap, not an oversight.
 - Intent classification is keyword-based and will misclassify obfuscated
   or novel attack patterns; a learned classifier is a natural extension.
 - We did not run a longitudinal live-internet deployment in this study;
-  results reflect a controlled, synthetic evaluation.
-- The before/after optimization comparison (Section 5.2) used two
-  different OpenRouter API keys, because the first key stopped
-  authenticating between runs for reasons outside this project's control.
-  This does not affect either run's internal validity, but the two runs
-  were not executed back-to-back on identical infrastructure state, and
-  the realism-score change is confounded with a judge-completeness
-  improvement (24/30 scored vs. 30/30) rather than isolating the
-  token-length effect alone — a controlled run varying only `max_tokens`
-  is needed to attribute the realism change precisely.
+  results reflect a controlled evaluation against a real-payload dataset
+  (Section 5.4), not live, unsolicited internet traffic.
 - The concurrent-throughput measurement used a single burst of 10
   simultaneous requests; it was not tested at higher concurrency levels
   or under sustained (non-burst) load, so the corrected 1.62 req/s
@@ -678,36 +779,128 @@ LLM-backed response engine spanning five distinct decoy services, and
 that anchors every log entry's hash on an independent blockchain to make
 the resulting forensic trail tamper-evident. Rather than a single
 unexplained accuracy figure, we measured and reported the actual
-trade-off along four independent axes across three successive evaluation
-runs: an initial latency cost of ~4.03s mean, reduced by a measured ~3x
-via connection pooling and a tuned generation-length cap to 1.35s mean
-(0.4 ms for the static path throughout) against a hand-curated dataset,
-rising to 2.06s mean against a subsequent 200-payload dataset built from
-real, publicly-documented attack corpora rather than hand-written strings
-(Section 5.4); a corrected concurrent throughput of 1.62 requests/second
-at 3.09s mean per-request latency under 10 simultaneous sessions, after
-finding and fixing a benchmark-harness bug that had silently reported an
-800 requests/second Redis cache-hit measurement as if it were LLM
-throughput; response diversity of 0.80–1.00 across four of five services
-against real payloads (0.70 for the API decoy, a genuine and now
-documented weakness against real XXE/Log4Shell payload shapes) versus
-near-zero for a static baseline; and a mean LLM-judged realism score
-stable at 4.00–4.03/5 across all three runs on complete 30/30-sample
-scoring — and we separately confirmed the blockchain anchoring's
-tamper-evidence property end-to-end. We reported the optimization pass's
-realism cost (a 0.38-point drop, confounded with a data-completeness
-improvement), the real-dataset diversity regression, and the benchmark
-harness bug alongside the favorable numbers rather than presenting only
-the latter. This positions the system for high-interaction deception
-against human operators or low-volume sophisticated tooling — not as a
+trade-off along four independent axes across four successive evaluation
+runs of increasing dataset realism and scale: an initial latency cost of
+~4.03s mean, reduced by a measured ~3x via connection pooling and a
+tuned generation-length cap to 1.35s mean (0.4 ms for the static path
+throughout) against a hand-curated dataset; rising to ~2s mean against
+real, publicly-documented attack corpora scaled from 200 to 1,328
+payloads (Sections 5.4–5.5); a corrected concurrent throughput of 3.05
+requests/second at 2.62s mean per-request latency under 10 simultaneous
+sessions against the full 1,328-item dataset, after finding and fixing a
+benchmark-harness bug that had silently reported an 800 requests/second
+Redis cache-hit measurement as if it were LLM throughput; response
+diversity of 0.83–1.00 across four of five services against real
+payloads at scale versus near-zero for a static baseline — and, most
+consequentially, a mean LLM-judged realism score that **fell to 3.37/5**
+at the largest, most real dataset scale, driven almost entirely by the
+API decoy's response diversity collapsing to 0.46 and 9 of 11 sampled
+API responses scoring 1–2/5, including one response containing an
+explicit AI safety disclaimer — a genuine deception failure this paper
+does not minimize or explain away. We separately confirmed the
+blockchain anchoring's tamper-evidence property end-to-end. We reported
+every run's numbers, the optimization pass's realism cost, the benchmark
+harness bug, and the API decoy's realism failure alongside the favorable
+numbers rather than presenting only the latter, and specify concrete
+follow-up work (a rewritten `oracle-ai` system prompt with XXE/JNDI-aware
+examples and an explicit anti-disclaimer instruction) rather than leaving
+the finding unaddressed. This positions the system for high-interaction
+deception against human operators or low-volume sophisticated tooling,
+with the API decoy specifically flagged as not yet meeting that bar — not as a
 replacement for the high-throughput, low-interaction honeypots that
 remain appropriate for Internet-scale scanning — and we have been
 explicit throughout about where an LLM-judge score is a proxy rather than
 a substitute for human evaluation. Future work should validate the
-realism findings with human subjects, replace keyword-based intent
-classification with a learned
-model, and evaluate the system under sustained live-traffic conditions
-rather than a synthetic dataset alone.
+realism findings with human subjects (Appendix A gives a ready-to-run
+protocol for this), replace keyword-based intent classification with a
+learned model, and evaluate the system under sustained live, unsolicited
+internet traffic rather than a real-but-offline payload dataset alone.
+
+## Appendix A: Proposed Human-Subject Realism Study Protocol
+
+Section 4.3 reports the LLM-judge realism score as an automated proxy
+metric, explicitly not a substitute for human judgment. This appendix
+specifies a concrete, executable protocol to close that gap — modeled on
+shelLM's human-evaluation methodology [4] but extended from a single
+SSH-only study to all five decoy services. **This protocol has not been
+run.** No human-subject data is reported anywhere in this paper; every
+number in Sections 5.1–5.4 is from the automated LLM-judge metric only.
+We publish the protocol itself as a concrete artifact for follow-up work
+(by us or others), rather than leaving "a human study is needed" as an
+unspecified aspiration.
+
+**Design.** A between-subjects discrimination task, following shelLM's
+true-negative-rate methodology [4]: each participant is shown a single
+transcript (one command/query and the system's response) and asked one
+question — *"Do you believe this response came from a real system, or
+from an automated decoy?"* — on a binary scale, optionally with a
+confidence rating (1–5). Transcripts are drawn evenly across two
+conditions: (a) genuine output from a real, non-honeypot instance of the
+corresponding service class (a real bash shell, a real PostgreSQL error,
+a real Ethereum JSON-RPC response, a real Jenkins API response, a real
+internal REST API error) and (b) this framework's LLM-generated decoy
+response to the same or a matched real-world payload from
+`apt_attack_dataset.json`. Participants are not told the true ratio of
+real to decoy transcripts, and each participant sees transcripts from
+only one decoy service (between-subjects, to prevent a participant from
+learning one service's "tells" and applying them to another) — this
+mirrors shelLM's single-service (SSH) design, extended here across the
+five services as five parallel arms of the same study rather than one
+five-way multi-service task.
+
+**Sample size.** To detect a true-negative rate meaningfully below
+shelLM's reported 0.90 (i.e., to distinguish "as convincing as shelLM"
+from "measurably less convincing") at α=0.05 and 80% power using a
+one-proportion z-test against a 0.90 null, a minimum of ~35 judgments per
+service arm is required (calculated for detecting a drop to 0.75; a
+larger effect size needs fewer). We recommend **50 judgments per service
+(250 total)**, each from a distinct participant-transcript pairing, to
+have margin against exclusions and to support a secondary per-service
+breakdown rather than only a pooled figure.
+
+**Participant pool.** Recruit from two populations, analyzed separately
+rather than pooled, since a security practitioner and a general
+technical user have different priors: (1) security practitioners
+(students/professionals with hands-on SSH/SQL/CI-CD/blockchain
+experience — the population most analogous to a real attacker manually
+probing a suspected honeypot) and (2) general CS students with basic
+familiarity with the relevant tool but no specific security training.
+Screen for baseline familiarity with the specific service class shown
+(e.g., a participant judging SSH transcripts should have used a real
+Linux shell before) — a judgment from someone unfamiliar with SSH output
+is not evidence about deception quality, only about unfamiliarity.
+
+**Materials.** Real (non-honeypot) transcripts should come from
+genuinely operating the real service class in a sandboxed environment
+(a real Ubuntu shell, a real local Postgres instance, a real local Geth
+node, a real local Jenkins instance, a toy internal REST API) against the
+*same* payloads used to generate the corresponding decoy responses, so
+condition (a) and (b) differ only in whether a real system or the
+framework produced the output — not in which command/query was asked.
+This is the controlled-pair design shelLM's methodology implies but our
+citation of it does not confirm in detail; specifying it explicitly here
+closes that gap.
+
+**Analysis.** Per-service true-negative rate (fraction of decoy
+transcripts a participant correctly or incorrectly judges as "real" — a
+*higher* rate here means the decoy is *more* convincing, following
+shelLM's terminology) with a 95% confidence interval (Wilson score
+interval, appropriate for small samples and rates near 0 or 1), compared
+against shelLM's reported 0.90 SSH figure via a one-proportion z-test.
+Report inter-rater agreement (Krippendorff's α) across participants
+judging the same transcript, since realism judgments are inherently
+subjective and low agreement would itself be a finding. Report the
+practitioner and general-user pools' rates separately before considering
+whether to pool them, and only pool if a chi-square test finds no
+significant between-pool difference.
+
+**Ethical/procedural notes for whoever runs this.** This requires
+institutional ethics/IRB approval before recruiting participants (a
+minimal-risk study, but human-subjects review still applies), informed
+consent disclosing that some transcripts are AI-generated, and no
+collection of participant PII beyond what the consent process requires.
+Participants should be debriefed on which transcripts were real vs.
+decoy after completing the task.
 
 ## References
 

@@ -57,7 +57,7 @@ and the backend communicate over an internal Docker network.
 | `ai-engine/` | 3-tier response engine: static dict -> Redis cache -> OpenRouter LLM call |
 | `backend/` | Central API: intent classification, SHA-256 hashing, blockchain anchoring, Redis storage, WebSocket broadcast |
 | `dashboard/` | React live-attack dashboard |
-| `apt_attack_dataset.json` | 200-payload real-world adversary dataset (40 per service) used for evaluation |
+| `apt_attack_dataset.json` | 1,328-payload real-world adversary dataset used for evaluation |
 | `evaluate.py` | Evaluation harness: latency/throughput, response diversity, LLM-judge realism scoring |
 | `generate_dataset.py` | Rebuilds `apt_attack_dataset.json` from real public payload corpora (see below) |
 
@@ -150,8 +150,9 @@ score:
 2. **Concurrent throughput** — `CONCURRENCY_LEVEL` simultaneous requests
    fired at once (default 10), measuring sustained req/s under concurrent
    attacker sessions rather than one-at-a-time latency.
-3. **Response diversity** — fraction of distinct outputs across the 200-item
-   APT dataset, as a proxy for resistance to signature-based fingerprinting.
+3. **Response diversity** — fraction of distinct outputs across the
+   1,328-item APT dataset, as a proxy for resistance to signature-based
+   fingerprinting.
 4. **LLM-judge realism score** — a second, independent LLM call rates each
    response 1-5 on how convincingly it imitates a real system. This is an
    automated proxy metric, not a human-subject study — see `evaluate.py`
@@ -162,13 +163,19 @@ score:
 `apt_attack_dataset.json` is built by `generate_dataset.py` by downloading
 real, publicly documented attack payloads (not hand-written or model-generated):
 
-| Service | Real source |
-|---|---|
-| `ssh` | [`payload-box/command-injection-payload-list`](https://github.com/payload-box/command-injection-payload-list) — real OS command-injection strings (recon, exfiltration, obfuscated, time-based) |
-| `sql` | [`payload-box/sql-injection-payload-list`](https://github.com/payload-box/sql-injection-payload-list) — real SQLi strings for MySQL, PostgreSQL, MSSQL, Oracle, SQLite |
-| `api` | [`swisskyrepo/PayloadsAllTheThings`](https://github.com/swisskyrepo/PayloadsAllTheThings) — Prompt Injection, SSRF, XXE, and Log4Shell sections |
-| `web3` | Real Ethereum JSON-RPC method names (`eth_sendRawTransaction`, `personal_unlockAccount`, `admin_addPeer`, etc.) — for an exposed RPC node the method call itself *is* the documented attack, per the public Ethereum JSON-RPC spec |
-| `cicd` | Real Jenkins remote-API endpoints and exploitation techniques from Jenkins Security Advisories (script-console RCE, job path traversal, pipeline `sh`-step abuse) |
+| Service | Count | Real source |
+|---|---|---|
+| `ssh` | 500 | [`danielmiessler/SecLists`](https://github.com/danielmiessler/SecLists) `Fuzzing/command-injection-commix.txt` (8,956 unique real strings from the commix exploitation tool) + [`payload-box/command-injection-payload-list`](https://github.com/payload-box/command-injection-payload-list) |
+| `sql` | 500 | SecLists `Fuzzing/Databases/SQLi/` — Generic-SQLi, quick-SQLi, SQLi-Polyglots, and `sqlmap`-derived risk-classified boolean/error/time-based payloads (474 unique real strings from the sqlmap exploitation tool) + [`payload-box/sql-injection-payload-list`](https://github.com/payload-box/sql-injection-payload-list) |
+| `api` | 300 | [`swisskyrepo/PayloadsAllTheThings`](https://github.com/swisskyrepo/PayloadsAllTheThings) (Prompt Injection, SSRF, XXE, Log4Shell sections) + SecLists `Fuzzing/XXE-Fuzzing.txt` |
+| `web3` | 18 | Real Ethereum JSON-RPC method names (`eth_sendRawTransaction`, `personal_unlockAccount`, `admin_addPeer`, etc.) — for an exposed RPC node the method call itself *is* the documented attack, per the public Ethereum JSON-RPC spec. Capped at 18 deliberately: no larger real corpus of "web3 attack payloads" exists |
+| `cicd` | 10 | Real Jenkins remote-API endpoints and exploitation techniques from Jenkins Security Advisories (script-console RCE, job path traversal, pipeline `sh`-step abuse). Capped at 10 for the same reason as `web3` |
+
+**1,328 total real payloads.** `web3` and `cicd` are intentionally not
+scaled to match `ssh`/`sql`/`api`: their real attack surface is a small,
+finite set of documented API methods/endpoints, not an open space of
+injection strings, so padding them to a uniform count would mean
+fabricating payloads rather than using more real data.
 
 Each dataset entry keeps a `"source": "real-world-payload-corpus"` field for
 provenance. Fetched payloads are cached in `real_data_cache/` so

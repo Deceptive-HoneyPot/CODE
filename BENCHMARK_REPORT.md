@@ -71,8 +71,77 @@ concrete follow-up: the `oracle-ai` decoy's system prompt likely needs
 XML/JNDI-aware examples to keep response diversity up against these real
 payload shapes.
 
+Full raw output for this 200-item run is superseded below; see
+`evaluation_results.json`'s current contents for the 1,328-item run.
+
+---
+
+## Update 2: Large-scale re-run against a 1,328-item real-payload dataset
+
+`generate_dataset.py` was extended to draw from larger real corpora —
+`danielmiessler/SecLists`' `command-injection-commix.txt` (8,956 unique
+real command-injection strings from the commix tool) and its
+`sqlmap`-derived SQLi payload sets (474 unique real strings), on top of
+the existing `payload-box` and `PayloadsAllTheThings` sources — growing
+the dataset from 200 to **1,328 real payloads**: 500 ssh, 500 sql, 300
+api, 18 web3, 10 cicd. web3 and cicd are deliberately not scaled further:
+unlike ssh/sql/api, there is no large public corpus of "web3 attack
+payloads" or "Jenkins attack payloads" to draw from — their real attack
+surface is a small, finite set of documented API methods/endpoints, not
+an open space of injection strings, so scaling them up would mean padding
+with fabricated content rather than using more real data. `evaluate.py`
+was re-run in full against this larger dataset, live, against the running
+stack, with real OpenRouter API calls throughout (diversity pass alone
+made 1,328 live LLM calls).
+
+| Metric | 200-item real dataset | 1,328-item real dataset |
+|---|---|---|
+| Dynamic latency (mean) | 2.06 s | 1.95 s |
+| Dynamic latency (median) | 1.80 s | 1.69 s |
+| Sequential throughput (dynamic) | 0.49 req/s | 0.51 req/s |
+| Concurrent throughput (10 sessions) | 1.62 req/s | 3.05 req/s |
+| Concurrent per-request latency (mean) | 3.09 s | 2.62 s |
+| Response diversity (ssh) | 0.925 | 0.964 |
+| Response diversity (sql) | 1.00 | 0.978 |
+| Response diversity (web3) | 0.80 | 0.833 |
+| Response diversity (cicd) | 0.90 | 1.00 |
+| Response diversity (api) | 0.70 | **0.46** |
+| Avg. response length (words) | 8.6 | 13.1 |
+| LLM-judge realism (mean) | 4.03 / 5 | **3.37 / 5** |
+| LLM-judge realism (σ) | 1.50 | 1.92 |
+| LLM-judge distribution | 1:4 · 2:2 · 3:2 · 4:3 · 5:19 | 1:10 · 2:3 · 3:0 · 4:0 · 5:17 |
+
+**The `api` service's diversity fell further, to 0.46, and the overall
+judge-realism mean dropped to 3.37/5 — the largest, most concrete finding
+of this whole evaluation history.** At 200 payloads the `api` weakness
+was visible but easy to read as noise (0.70 on a small sample); at 1,328
+payloads it is unambiguous: 138 distinct responses out of 300 `api`
+requests, and in the 30-item judge sample, **9 of the 11 sampled `api`
+responses scored 1–2/5** (versus near-uniform 5/5 scores for ssh, sql,
+and web3 in the same sample). The judge's own reasons are specific and
+consistent across samples — "generic, templated error message with no
+relation to the XML payload," "does not acknowledge the XXE attack" — and
+one response was flagged for something more serious than genericness —
+**it contained an explicit AI safety disclaimer** ("Contains an explicit
+disclaimer about not generating harmful responses"). A honeypot response
+that visibly states it is an AI declining to help is a hard deception
+failure, not a minor realism deduction — it is close to the single worst
+outcome for this system's stated purpose, immediately signaling "this is
+not a real system" to exactly the kind of attentive attacker the
+architecture is meant to hold the attention of.
+
+**This is now the dataset's single most actionable finding.** The
+`oracle-ai` decoy's system prompt (`ai-engine/engine.py`) needs concrete
+few-shot examples of vulnerable-service responses to XXE/Log4Shell/SSRF
+payload shapes, and — separately — needs an explicit instruction against
+ever emitting safety-disclaimer language, since the underlying hosted
+model's own safety training is bleeding through the deception persona on
+a measurable fraction of adversarial XML/JNDI inputs. This was invisible
+at 200 payloads and only became unambiguous at 1,328 — a direct
+demonstration of why the larger real dataset was worth building.
+
 Full raw output: `evaluation_results.json` (config:
-`diversity_dataset_size: 200`, `judge_sample_size: 30`,
+`diversity_dataset_size: 1328`, `judge_sample_size: 30`,
 `static_trials: 30`, `dynamic_latency_trials: 20`).
 
 ---

@@ -96,14 +96,20 @@ plt.close(fig)
 
 
 # --- Figure 3: Response diversity (uniqueness ratio) by decoy service ---
+# Per-service n varies (web3/cicd are capped by real corpus size, not
+# uniform with ssh/sql/api) so each bar is labeled with its own n rather
+# than a single "n=X each" title that would misstate the smaller services.
 fig, ax = plt.subplots(figsize=(3.4, 2.6), dpi=200)
 diversity = results["response_diversity_by_service"]
 services = list(diversity.keys())
 ratios = [diversity[s]["uniqueness_ratio"] for s in services]
+ns = [diversity[s]["n"] for s in services]
 order = sorted(range(len(services)), key=lambda i: -ratios[i])
 services = [services[i] for i in order]
 ratios = [ratios[i] for i in order]
-bars = ax.barh(services, ratios, color=AQUA, height=0.55)
+ns = [ns[i] for i in order]
+labels = [f"{s} (n={n})" for s, n in zip(services, ns)]
+bars = ax.barh(labels, ratios, color=AQUA, height=0.55)
 ax.set_xlim(0, 1.15)
 ax.set_xlabel("Uniqueness ratio (distinct / total responses)")
 ax.axvline(1.0, color=GRAY_TEXT, linewidth=0.8, linestyle="--", alpha=0.6)
@@ -112,8 +118,7 @@ for b, v in zip(bars, ratios):
 style_ax(ax)
 ax.xaxis.grid(True)
 ax.yaxis.grid(False)
-n_per_service = diversity[services[0]]["n"] if services else 0
-ax.set_title(f"Response Diversity by Decoy Service (n={n_per_service} each)", fontsize=9.5, pad=10)
+ax.set_title("Response Diversity by Decoy Service", fontsize=9.5, pad=10)
 fig.tight_layout()
 fig.savefig(FIG_DIR / "fig3_diversity.png", bbox_inches="tight")
 plt.close(fig)
@@ -126,8 +131,9 @@ scores = ["1", "2", "3", "4", "5"]
 counts = [dist.get(s, 0) for s in scores]
 bar_colors = [ORANGE if int(s) <= 2 else (YELLOW if s == "3" else AQUA) for s in scores]
 bars = ax.bar(scores, counts, color=bar_colors, width=0.6)
+n_judged = results["llm_judge_realism"]["n_scored"]
 ax.set_xlabel("Judge-assigned realism score (1=fake, 5=indistinguishable)")
-ax.set_ylabel("Number of responses (n=30)")
+ax.set_ylabel(f"Number of responses (n={n_judged})")
 for b, c in zip(bars, counts):
     if c > 0:
         ax.text(b.get_x() + b.get_width() / 2, c + 0.3, str(c), ha="center", fontsize=8.5, color=INK)

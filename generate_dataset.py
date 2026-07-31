@@ -5,14 +5,17 @@ corpora instead of hand-written strings.
 Sources (fetched live over HTTPS, MIT/permissive-licensed security research
 repos used for education/pentesting):
 
-  ssh   -> payload-box/command-injection-payload-list
-           (real OS command-injection strings: recon, exfil, obfuscated,
-           time-based, Linux-specific)
-  sql   -> payload-box/sql-injection-payload-list
-           (real SQLi strings for MySQL, PostgreSQL, MSSQL, Oracle, SQLite)
-  api   -> swisskyrepo/PayloadsAllTheThings
-           (Prompt Injection, SSRF, XXE, Log4Shell sections - real documented
-           attack strings against internal/AI-facing APIs)
+  ssh   -> danielmiessler/SecLists Fuzzing/command-injection-commix.txt
+           (8,000+ real OS command-injection strings from the commix
+           exploitation tool) + payload-box/command-injection-payload-list
+           as a secondary source (recon, exfil, obfuscated, time-based)
+  sql   -> danielmiessler/SecLists Fuzzing/Databases/SQLi/ (Generic-SQLi,
+           quick-SQLi, sqlmap risk-classified boolean/error/time-based
+           payloads - real strings from the sqlmap exploitation tool) +
+           payload-box/sql-injection-payload-list as a secondary source
+  api   -> swisskyrepo/PayloadsAllTheThings (Prompt Injection, SSRF, XXE,
+           Log4Shell sections) + SecLists Fuzzing/XXE-Fuzzing.txt -
+           real documented attack strings against internal/AI-facing APIs
   web3  -> Ethereum JSON-RPC method names from etclabscore's public spec,
            combined into the same abusive call shapes documented in real
            "exposed RPC node" incident writeups (eth_sendRawTransaction,
@@ -24,8 +27,15 @@ repos used for education/pentesting):
            pipeline "sh" step abuse) documented in Jenkins security
            advisories, expressed as the real request shapes forge-ci exposes
 
+web3 and cicd stay small deliberately: unlike ssh/sql/api, there is no
+large public corpus of "web3 attack payloads" or "Jenkins attack payloads"
+to draw from (their attack surface is a small, finite set of real
+API methods/endpoints, not a large space of injection strings) - so
+PER_SERVICE is capped per-service by what's genuinely available rather
+than padded with repeated/duplicated content to hit a uniform number.
+
 Run with network access. Falls back to a cached copy in
-real_data/ (scratchpad) if offline. Every entry keeps a "source" field
+real_data_cache/ if offline. Every entry keeps a "source" field
 recording exactly which real corpus/file it came from, so provenance is
 auditable - nothing here is model-generated or hand-invented.
 """
@@ -39,8 +49,11 @@ import requests
 
 RAW = "https://raw.githubusercontent.com"
 
+SECLISTS = f"{RAW}/danielmiessler/SecLists/master"
+
 SOURCES = {
     "ssh": [
+        f"{SECLISTS}/Fuzzing/command-injection-commix.txt",
         f"{RAW}/payload-box/command-injection-payload-list/main/Intruder/command-injection-linux.txt",
         f"{RAW}/payload-box/command-injection-payload-list/main/Intruder/command-injection-data-exfiltration.txt",
         f"{RAW}/payload-box/command-injection-payload-list/main/Intruder/command-injection-obfuscated.txt",
@@ -48,6 +61,14 @@ SOURCES = {
         f"{RAW}/payload-box/command-injection-payload-list/main/Intruder/command-injection-basic.txt",
     ],
     "sql": [
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/Generic-SQLi.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/quick-SQLi.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/SQLi-Polyglots.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/sqlmap-risk-classified/High-Risk-Payloads/boolean_blind.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/sqlmap-risk-classified/High-Risk-Payloads/error_based.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/sqlmap-risk-classified/High-Risk-Payloads/time_blind.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/sqlmap-risk-classified/Medium-Risk-Payloads/stacked_queries.txt",
+        f"{SECLISTS}/Fuzzing/Databases/SQLi/sqlmap-risk-classified/Medium-Risk-Payloads/time_blind.txt",
         f"{RAW}/payload-box/sql-injection-payload-list/main/mysql-payloads.txt",
         f"{RAW}/payload-box/sql-injection-payload-list/main/postgresql-payloads.txt",
         f"{RAW}/payload-box/sql-injection-payload-list/main/mssql-payloads.txt",
@@ -59,8 +80,13 @@ SOURCES = {
         f"{RAW}/swisskyrepo/PayloadsAllTheThings/master/Server%20Side%20Request%20Forgery/README.md",
         f"{RAW}/swisskyrepo/PayloadsAllTheThings/master/XXE%20Injection/README.md",
         f"{RAW}/swisskyrepo/PayloadsAllTheThings/master/CVE%20Exploits/Log4Shell.md",
+        f"{SECLISTS}/Fuzzing/XXE-Fuzzing.txt",
     ],
 }
+
+# XXE-Fuzzing.txt is a plain payload-per-line file, unlike the other "api"
+# sources which are markdown docs needing extraction.
+API_PLAIN_LINE_SOURCES = {f"{SECLISTS}/Fuzzing/XXE-Fuzzing.txt"}
 
 CACHE_DIR = Path(__file__).parent / "real_data_cache"
 CACHE_DIR.mkdir(exist_ok=True)
@@ -96,7 +122,11 @@ def _looks_like_payload(ln: str) -> bool:
     that happen to sit inside a fenced code block in narrative-style docs."""
     if not (6 <= len(ln) <= 300):
         return False
-    if ln.startswith(("#", "*", "-", "//", "<!--")):
+    if ln.startswith(("#", "*", "-", "//", "<!--", "|")):
+        return False
+    # reject markdown table rows (e.g. hex-dump tables in prose docs) that
+    # slip through because a cell happens to contain a code-signal string
+    if ln.count("|") >= 2:
         return False
     # must contain at least one "this is code/payload" signal
     has_code_signal = bool(re.search(
@@ -147,7 +177,11 @@ def build_sql() -> list[str]:
 def build_api() -> list[str]:
     payloads = []
     for url in SOURCES["api"]:
-        payloads += extract_md_payloads(fetch(url))
+        text = fetch(url)
+        if url in API_PLAIN_LINE_SOURCES:
+            payloads += extract_lines(text)
+        else:
+            payloads += extract_md_payloads(text)
     return payloads
 
 
@@ -216,7 +250,21 @@ def sample(payloads: list[str], n: int) -> list[str]:
     return [random.choice(payloads) for _ in range(n)]
 
 
-PER_SERVICE = 40  # dataset size per service; total = 5 * PER_SERVICE
+# Per-service target sizes, capped by how large a REAL payload corpus
+# actually exists for that service - not a uniform number padded with
+# duplicates. ssh/sql/api draw from corpora with thousands/hundreds of
+# genuine distinct payloads (SecLists' commix and sqlmap-derived lists,
+# PayloadsAllTheThings); web3/cicd are capped at len() of their real
+# source below (a finite set of documented RPC methods / Jenkins
+# endpoints) - going larger there would mean fabricating payloads, which
+# defeats the point of using real data.
+PER_SERVICE_TARGET = {
+    "ssh": 500,
+    "sql": 500,
+    "api": 300,
+    "web3": len(WEB3_RPC_METHODS),
+    "cicd": len(CICD_REAL_TECHNIQUES),
+}
 
 
 def main():
@@ -236,7 +284,7 @@ def main():
         payloads = builder()
         payloads = list(dict.fromkeys(payloads))  # de-dupe, keep order
         provenance[service] = {"unique_real_payloads_fetched": len(payloads)}
-        chosen = sample(payloads, PER_SERVICE)
+        chosen = sample(payloads, PER_SERVICE_TARGET[service])
         for cmd in chosen:
             nonce = uuid.uuid4().hex[:8]
             dataset.append({

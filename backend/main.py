@@ -45,8 +45,8 @@ def anchor_blockchain(log_hash: str):
         print(f"Blockchain error: {e}")
     return False
 
-def classify_intent(raw: str) -> str:
-    d = raw.lower()
+def classify_intent(raw) -> str:
+    d = str(raw).lower()
     if any(x in d for x in ["select ", "' or", "union ", "drop table", "1=1", "insert into"]):
         return "sql_injection"
     if any(x in d for x in ["sudo", "/etc/shadow", "chmod 777", "passwd", "privilege"]):
@@ -153,15 +153,15 @@ async def run_benchmark():
             try: await client.post(URL, json=static_payload)
             except: pass
             static_times.append(time.time() - t0)
-            
+
         dynamic_times = []
         words = 0
         for _ in range(NUM_DYNAMIC):
             t0 = time.time()
             try:
-                r = await client.post(URL, json=dynamic_payload)
-                if r.status_code == 200:
-                    words += len(r.json().get("response", "").split())
+                resp = await client.post(URL, json=dynamic_payload)
+                if resp.status_code == 200:
+                    words += len(resp.json().get("response", "").split())
             except: pass
             dynamic_times.append(time.time() - t0)
             

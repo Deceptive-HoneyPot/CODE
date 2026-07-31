@@ -34,18 +34,36 @@ export default function App() {
     fetchStats();
     const si = setInterval(fetchStats, 5000);
 
-    const wsUrl = BACKEND.replace(/^http/, "ws") + "/ws/live";
-    const ws = new WebSocket(wsUrl);
-    wsRef.current = ws;
-    ws.onopen  = () => setConnected(true);
-    ws.onclose = () => setConnected(false);
-    ws.onmessage = (e) => {
-      try {
-        const log = JSON.parse(e.data);
-        setLogs(prev => [log, ...prev].slice(0, 200));
-      } catch {}
+    let cancelled = false;
+    let reconnectTimer = null;
+
+    const connect = () => {
+      const wsUrl = BACKEND.replace(/^http/, "ws") + "/ws/live";
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+      ws.onopen = () => setConnected(true);
+      ws.onclose = () => {
+        setConnected(false);
+        // Auto-reconnect so a dropped connection doesn't leave the
+        // dashboard permanently marked offline until a manual refresh.
+        if (!cancelled) reconnectTimer = setTimeout(connect, 3000);
+      };
+      ws.onerror = () => ws.close();
+      ws.onmessage = (e) => {
+        try {
+          const log = JSON.parse(e.data);
+          setLogs(prev => [log, ...prev].slice(0, 200));
+        } catch {}
+      };
     };
-    return () => { clearInterval(si); ws.close(); };
+    connect();
+
+    return () => {
+      cancelled = true;
+      clearInterval(si);
+      clearTimeout(reconnectTimer);
+      wsRef.current?.close();
+    };
   }, []);
 
   const intentData = Object.entries(stats.by_intent || {});

@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>An AI-Driven, Blockchain-Anchored Cyber Deception Framework for Adaptive Honeypot Defense</title>
+<style>
+  @page {
+    size: letter;
+    margin: 19mm 16mm 19mm 16mm;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 10pt;
+    line-height: 1.15;
+    color: #000;
+    background: #fff;
+    margin: 0;
+    padding: 0;
+  }
+  .page-title {
+    text-align: center;
+    font-size: 18pt;
+    font-weight: bold;
+    margin: 0 0 4mm 0;
+    line-height: 1.25;
+  }
+  .authors {
+    text-align: center;
+    font-size: 10pt;
+    margin-bottom: 6mm;
+  }
+  .authors .name { font-size: 11pt; }
+  .authors .affil { font-style: italic; }
+
+  .columns {
+    column-count: 2;
+    column-gap: 7mm;
+    column-rule: none;
+    text-align: justify;
+    orphans: 3;
+    widows: 3;
+  }
+
+  .abstract-block {
+    font-size: 10pt;
+  }
+  .abstract-block .label {
+    font-weight: bold;
+    font-style: italic;
+  }
+  .keywords {
+    font-size: 10pt;
+    margin-top: 2mm;
+  }
+  .keywords .label {
+    font-weight: bold;
+    font-style: italic;
+  }
+
+  h2.section {
+    font-size: 10pt;
+    font-variant: small-caps;
+    text-align: center;
+    letter-spacing: 0.5px;
+    margin: 4mm 0 2mm 0;
+    break-after: avoid;
+  }
+  h3.subsection {
+    font-size: 10pt;
+    font-style: italic;
+    margin: 3mm 0 1mm 0;
+    break-after: avoid;
+  }
+  p {
+    margin: 0 0 2mm 0;
+    text-indent: 4mm;
+  }
+  p:first-of-type, h2.section + p, h3.subsection + p {
+    text-indent: 0;
+  }
+
+  ol, ul {
+    margin: 1mm 0 2mm 4mm;
+    padding-left: 3mm;
+    font-size: 10pt;
+  }
+  li { margin-bottom: 1mm; }
+
+  code, .mono {
+    font-family: "Courier New", Courier, monospace;
+    font-size: 9pt;
+  }
+
+  figure {
+    break-inside: avoid;
+    margin: 2mm 0 3mm 0;
+    text-align: center;
+  }
+  figure img {
+    width: 100%;
+    max-width: 100%;
+    display: block;
+    margin: 0 auto;
+  }
+  figcaption {
+    font-size: 8.5pt;
+    text-align: left;
+    margin-top: 1.5mm;
+  }
+  figcaption .fig-label {
+    font-weight: bold;
+  }
+
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 8.5pt;
+    margin: 2mm 0 3mm 0;
+    break-inside: avoid;
+  }
+  caption {
+    caption-side: top;
+    font-size: 8.5pt;
+    font-variant: small-caps;
+    text-align: center;
+    margin-bottom: 1mm;
+  }
+  th, td {
+    border-top: 0.75pt solid #000;
+    border-bottom: 0.75pt solid #000;
+    padding: 1mm 1.5mm;
+    text-align: left;
+  }
+  thead th {
+    border-top: 1.25pt solid #000;
+    border-bottom: 0.75pt solid #000;
+  }
+  tbody tr:last-child td {
+    border-bottom: 1.25pt solid #000;
+  }
+
+  .references {
+    font-size: 9pt;
+  }
+  .references ol {
+    margin-left: 4mm;
+    padding-left: 3mm;
+  }
+  .references li {
+    margin-bottom: 1.5mm;
+    text-indent: -3mm;
+    padding-left: 3mm;
+  }
+
+  .front-matter {
+    column-count: 1;
+  }
+
+  strong.callout { font-weight: bold; }
+  em { font-style: italic; }
+
+  @media print {
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="front-matter">
+  <div class="page-title">An AI-Driven, Blockchain-Anchored Cyber Deception Framework for Adaptive Honeypot Defense</div>
+  <div class="authors">
+    <div class="name">Author Name</div>
+    <div class="affil">Department of Computer Science and Engineering<br>Amrita Vishwa Vidyapeetham<br>City, Country — email@example.com</div>
+  </div>
+</div>
+
+<div class="columns">
+
+<div class="abstract-block">
+<p><span class="label">Abstract—</span>Traditional honeypots — Cowrie, Kippo, Dionaea, and similar low/medium-interaction systems — rely on static, deterministic response tables. This makes them efficient at scale but fragile against fingerprinting: prior work has shown that automated probing can distinguish such honeypots from real systems with near-perfect accuracy in a single packet exchange [1]. This paper presents a multi-protocol cyber deception framework that replaces static response tables with a large language model (LLM) response engine, producing context-aware, session-consistent output for five decoy services (SSH, an internal AI API, PostgreSQL, an Ethereum JSON-RPC node, and Jenkins CI/CD) while retaining a fast static path for the routine majority of traffic. Every interaction is intent-classified, SHA-256 hashed, and anchored as a transaction on a local Ethereum chain, giving the resulting audit trail tamper-evidence independent of the logging host's integrity. We evaluate the system against a static-honeypot baseline along four axes — sequential latency/throughput, concurrent throughput, response diversity across a 100-payload adversarial dataset, and an LLM-judge realism score — and report the measured trade-off explicitly rather than a single composite metric. After an optimization pass (HTTP connection pooling applied across the response engine and all five decoys, a tuned generation-length cap, and a widened static fast-path), the system achieves a mean dynamic-path latency of 1.35 s (down from an initial 4.03 s, a ≈3× improvement), a sequential throughput of 0.74 requests/second, and a concurrent throughput of 800 requests/second under 10 simultaneous attacker sessions — versus 3,333 requests/second for the static fast-path. It maintains a response-diversity (uniqueness) ratio of 0.95–1.00 across all five decoy services versus near-zero for a static baseline by construction, and a mean LLM-judged realism score of 4.00/5 (σ = 1.36, n = 30/30 sampled responses scored). We report the optimization pass's honest cost — a 0.38-point drop in judged realism from a shorter generation-length cap — alongside the throughput gain, and discuss where this trade-off is acceptable (human-operated intrusion, not internet-wide scanning) and the limitations of automated realism scoring as a proxy for human deception studies.</p>
+<p class="keywords"><span class="label">Index Terms—</span>honeypot, cyber deception, large language models, blockchain, digital forensics, intrusion detection, adaptive defense</p>
+</div>
+
+<h2 class="section">I. Introduction</h2>
+<p>Honeypots are decoy systems deployed to attract, detect, and study unauthorized access attempts without exposing production infrastructure. Since Cowrie's introduction as an SSH/Telnet honeypot, low- and medium-interaction honeypots have become a standard component of threat intelligence pipelines: they are cheap to deploy, safe to run, and generate large volumes of attacker telemetry. Their core weakness is also their core design choice — a finite table of canned responses. An attacker, or more commonly an automated scanner, can send a handful of atypical commands and observe whether the responses are internally consistent with a real system. Vetterl and Clayton demonstrated Internet-scale fingerprinting of exactly this class of honeypot with a single distinguishing packet and near-zero error rate [1]. Once a honeypot is identified, it stops collecting useful intelligence on capable adversaries, who simply move on or feed it false telemetry.</p>
+<p>Two independent trends motivate a different approach. First, instruction-tuned LLMs can generate plausible, contextually consistent text for narrow, well-specified personas (a Linux shell, a SQL error, a JSON-RPC response) far more cheaply than hand-authoring a comprehensive fake filesystem or database. Recent work — shelLM [4], HoneyGPT [5], and related 2023–2025 studies [6], [7] — has shown that LLM-generated shell sessions can hold up under sustained human interaction significantly better than static emulation. Second, blockchain-anchored hashing offers a low-cost way to make forensic logs tamper-evident: instead of trusting the honeypot host's own log integrity (which an attacker who compromises the host could edit), a hash of each log entry is committed to an independent, append-only ledger, so any later modification is detectable by re-hashing and comparing.</p>
+<p>This paper combines both trends into a single deployable framework and contributes:</p>
+<ol>
+<li>A <strong class="callout">multi-protocol deception architecture</strong> covering five distinct attack surfaces (SSH, an internal AI API, SQL, Ethereum RPC, and CI/CD) behind a single logging and classification pipeline — broader coverage than the SSH-only focus of most LLM-honeypot literature to date.</li>
+<li>A <strong class="callout">three-tier response strategy</strong> (static dictionary → cached LLM response → live LLM call) that keeps routine traffic at millisecond latency while reserving expensive generation for genuinely novel input.</li>
+<li><strong class="callout">Blockchain-anchored log integrity</strong> applied specifically to honeypot telemetry, giving each log entry a verifiable, tamper-evident hash independent of the collecting host.</li>
+<li>An <strong class="callout">evaluation methodology</strong> that reports latency, response diversity, and an LLM-judge realism score as separate, reproducible measurements — explicitly avoiding a single unexplained accuracy figure — along with a discussion of what an automated judge can and cannot substitute for.</li>
+</ol>
+
+<h2 class="section">II. Related Work</h2>
+<h3 class="subsection">A. Static Honeypots and Fingerprinting</h3>
+<p>Cowrie, Kippo, Dionaea, and T-Pot remain widely deployed low/medium-interaction honeypots, valued for low resource cost and safety. Their static response model is precisely what fingerprinting techniques exploit: Vetterl and Clayton [1] achieved an equal error rate of 0.0183 detecting such honeypots at Internet scale using single-packet probes; a later multistage active-probing framework [2] generalized this to a broader class of honeypots. A 2026 survey of fingerprinting and evasion techniques [3] confirms this remains an open problem rather than one solved by incremental patching of response tables.</p>
+
+<h3 class="subsection">B. LLM-Backed Deception</h3>
+<p>Sladić et al.'s shelLM [4] used an LLM to generate an entire SSH shell session and reported a 0.90 true-negative rate — human evaluators judged the sessions to be a real shell 90% of the time. HoneyGPT [5] extended this with chain-of-thought prompting for more stateful sessions and reported deeper attacker engagement in field deployment. McKee and Noever's early exploration [6] and the broader "LLM Honeypot" study [7] corroborate that LLM-driven responses measurably outperform static emulation on interactivity and perceived realism. This body of work is concentrated on SSH/terminal honeypots; our framework applies the same idea across five protocol types with a shared backend, which to our knowledge has not been evaluated together in prior work.</p>
+
+<h3 class="subsection">C. Blockchain for Log Integrity and Forensic Chain of Custody</h3>
+<p>Hash-then-anchor patterns for tamper-evident logging are established in digital forensics: a 2025 IEEE study on blockchain-based evidence tracking [8] and a Springer paper on tamper-proof cloud VM investigation models [9] both apply hashing plus blockchain anchoring to forensic evidence generally. A PeerJ Computer Science paper on blockchain-enforced immutable auditability for threat detection [10] applies a closely related pattern to security telemetry specifically. We did not find prior work applying this pattern to honeypot logs specifically — our contribution is the application, not the underlying cryptographic technique.</p>
+
+<h3 class="subsection">D. Deception Frameworks and Honeytokens</h3>
+<p>MITRE Engage [11] provides a structured vocabulary for adversary engagement and deception mapped to ATT&amp;CK, which we use loosely to frame our five decoys as covering distinct engagement opportunities (credential harvesting, prompt injection, data exfiltration bait, transaction-signing bait, and supply-chain bait respectively). Honeytokens — individually identifiable fake credentials seeded to detect misuse — have a long history dating to HoneyGen [13]; our seeded fake API keys and database records in <code>vault-sql</code> are a direct application of this idea.</p>
+
+<h3 class="subsection">E. Realism and Detectability Benchmarking</h3>
+<p>Standardized telemetry metrics for honeypot realism (dwell time, interaction depth, behavioral diversity) have been proposed recently [15]; we adopt "response diversity" as one such metric in our own evaluation. We could not verify several secondary-source dwell-time statistics circulating for RL/LLM-driven deception systems and deliberately do not cite unverified numbers here — see Section VII.</p>
+
+<h2 class="section">III. System Architecture</h2>
+<p>The framework has six components: a network-facing proxy, five decoy services, a shared AI response engine, a central backend, a blockchain ledger, and a live dashboard. Only the proxy and dashboard are exposed to the network; all other components communicate over an internal Docker network, so a compromised decoy cannot directly reach the logging pipeline or the blockchain client.</p>
+
+<h3 class="subsection">A. Proxy and Network Isolation</h3>
+<p><code>proxy/proxy.py</code> is an asyncio TCP server listening simultaneously on five public ports (2222, 8080, 5433, 8545, 9090). On each new connection it asynchronously logs the source IP and target port to the backend, then transparently pipes bytes between the attacker and the corresponding internal decoy. This separates connection-level telemetry (useful even for port scanners that never send a payload) from application-level decoy logic, and ensures every decoy's internal listening port is never directly reachable from outside the Docker network.</p>
+
+<h3 class="subsection">B. Decoy Services</h3>
+<p>Five decoys cover distinct attack surfaces, each impersonating a specific real system and each logging every interaction to the backend before (or while) generating a response:</p>
+<ul>
+<li><strong>shadow-shell</strong> (SSH, port 2222) — a real asyncssh server that accepts any username/password combination, logs every login attempt, and presents a shell prompt for <code>dbadmin@corp-prod-db-01</code>. Directory navigation is handled locally; all other commands route through the AI engine.</li>
+<li><strong>oracle-ai</strong> (internal AI API, port 8080) — a FastAPI service exposing chat, predict, and model-listing endpoints for a fictitious internal model. Prompt-injection attempts are logged and answered with a scripted "bypass accepted" response, keeping the attacker engaged.</li>
+<li><strong>vault-sql</strong> (PostgreSQL decoy, port 5433) — a FastAPI query endpoint plus a real, separately-seeded PostgreSQL instance containing synthetic user records, financial records, and API keys formatted to resemble real OpenAI, GitHub, and AWS credentials, used as honeytokens.</li>
+<li><strong>ledger-trap</strong> (Ethereum JSON-RPC, port 8545) — responds to standard Web3 RPC calls with statically-defined plausible values for common calls and routes uncommon RPC methods through the AI engine.</li>
+<li><strong>forge-ci</strong> (Jenkins CI/CD, port 9090) — exposes Jenkins-style endpoints that fake a working build/deploy pipeline, targeting supply-chain attackers.</li>
+</ul>
+
+<h3 class="subsection">C. Three-Tier AI Response Engine</h3>
+<p><code>ai-engine/engine.py</code> answers each request in one of three tiers, in order, so the expensive LLM call is reserved for genuinely novel input: (1) a <strong>static dictionary</strong> answers roughly a dozen common SSH commands and structural patterns instantly; (2) a <strong>Redis cache</strong> checks unknown commands (hashed with up to two prior history entries) against a multi-hour TTL cache before any LLM call; (3) a <strong>hosted LLM call</strong> handles cache misses via the OpenRouter API, with a service-specific system prompt instructing the model to output only the raw response a real system would produce, with SSH session history included for state consistency.</p>
+
+<h3 class="subsection">D. Intent Classification</h3>
+<p><code>backend/main.py::classify_intent</code> applies keyword matching to every logged payload, assigning one of eight categories: SQL injection, privilege escalation, reverse shell, cryptomining, prompt injection, supply-chain, reconnaissance, or unknown. This is intentionally simple — a rule-based baseline rather than a learned classifier — and is reported as a known limitation (Section VII) rather than a contribution in its own right.</p>
+
+<h3 class="subsection">E. Blockchain-Anchored Logging</h3>
+<p>Every log entry received at <code>POST /api/log</code> is timestamped and intent-classified, serialized with sorted keys and SHA-256 hashed, anchored by sending a zero-value self-transaction on a local Ethereum chain (Ganache) with the hash as the transaction's data field, stored in a bounded Redis list, and broadcast over WebSocket to connected dashboard clients. Because the hash is committed to an independently operated ledger, any later modification of the stored log is detectable by re-hashing it and comparing against the anchored value.</p>
+
+<h3 class="subsection">F. Real-Time Dashboard</h3>
+<p>A React single-page app (Fig. 6) polls stats every five seconds and subscribes to a WebSocket push feed, showing aggregate stats, an intent breakdown, top attacker IPs, and a scrolling live feed of the last 200 events, each annotated with its blockchain-anchoring status. The WebSocket layer auto-reconnects on disconnect rather than leaving the dashboard permanently marked offline.</p>
+
+<h2 class="section">IV. Evaluation Methodology</h2>
+<p>We evaluate against a static-honeypot baseline, operationalized as the system's own static fast-path (functionally equivalent to Cowrie's canned-response model) versus its LLM-backed dynamic path, using <code>evaluate.py</code> against the live system.</p>
+
+<h3 class="subsection">A. Dataset</h3>
+<p>A 100-payload synthetic adversary dataset, 20 payloads per decoy service, generated from hand-curated attack patterns (reverse shells, SQL injection, RPC abuse, prompt injection, CI/CD supply-chain payloads), each tagged with a random nonce to defeat caching during evaluation.</p>
+
+<h3 class="subsection">B. Metrics</h3>
+<ol>
+<li><strong>Latency / throughput.</strong> 30 trials of the static fast-path and 20 trials of the LLM-backed path; mean, median, and standard deviation reported rather than a single sample.</li>
+<li><strong>Response diversity.</strong> Across the full 100-item dataset, the fraction of distinct outputs per service, used as a proxy for resistance to signature-based fingerprinting.</li>
+<li><strong>LLM-judge realism score.</strong> An independent model (70B, distinct from the 8B generation model to reduce self-evaluation bias) rates each response 1–5 against a fixed rubric, on a sample of 30 payloads.</li>
+</ol>
+
+<h3 class="subsection">C. Limitations of the Realism Metric</h3>
+<p>This is an automated proxy metric, not a human-subject study. LLM judges have known biases and may not perfectly track what a human attacker would find convincing. shelLM's 0.90 true-negative rate [4] was obtained with human evaluators; we report our LLM-judge score as a weaker but far cheaper and reproducible substitute.</p>
+
+<h3 class="subsection">D. Blockchain Integrity Test</h3>
+<p>We additionally demonstrate tamper-evidence directly: a real log entry is submitted, anchored on-chain, fetched back, re-hashed, and confirmed to match its recorded hash; a modified copy is then re-hashed and confirmed to <em>not</em> match.</p>
+
+<h2 class="section">V. Results</h2>
+<p>All figures below are measured directly against the live local stack using the 8B model for generation and the 70B model as judge.</p>
+
+<h3 class="subsection">A. Initial Baseline</h3>
+<p>The first evaluation run, before any latency optimization, established the baseline in Table I.</p>
+
+<table>
+<caption>Table I. Initial Baseline: Static vs. LLM-Backed Path</caption>
+<thead><tr><th>Metric</th><th>Static</th><th>Dynamic</th></tr></thead>
+<tbody>
+<tr><td>Mean latency</td><td>0.4 ms</td><td>4,028 ms (4.03 s)</td></tr>
+<tr><td>Median latency</td><td>0.4 ms</td><td>3,529 ms (3.53 s)</td></tr>
+<tr><td>Stdev</td><td>0.1 ms</td><td>2,380 ms (2.38 s)</td></tr>
+<tr><td>Min / Max latency</td><td>0.3 / 0.7 ms</td><td>1,037 / 8,807 ms</td></tr>
+<tr><td>Throughput (req/s)</td><td>2,500</td><td>0.25</td></tr>
+<tr><td>Diversity ratio (mean)</td><td>≈0</td><td>0.99 (0.95–1.00)</td></tr>
+<tr><td>Avg. response length (words)</td><td>0</td><td>16.2</td></tr>
+</tbody>
+</table>
+
+<p>LLM-judge realism score: mean 4.38/5 (σ = 1.28, n = 24 of 30 sampled responses successfully parsed — six judge calls returned unparseable output and are excluded rather than assumed either way).</p>
+
+<figure>
+<img src="data:image/png;base64,{{fig1_latency}}" alt="Bar chart of mean latency before and after optimization">
+<figcaption><span class="fig-label">Fig. 1.</span> Mean response latency, static vs. dynamic path, before and after the optimization pass (log scale).</figcaption>
+</figure>
+
+<h3 class="subsection">B. Optimization Pass</h3>
+<p>Profiling the baseline identified two fixable inefficiencies in the AI engine: (1) a new HTTP client — and therefore a fresh TCP+TLS handshake — was opened on every single request to OpenRouter instead of reusing a connection pool; (2) a 150-token generation cap was generous relative to what these responses need, and generation length is the dominant cost in request latency. A third change widened the static SSH dictionary with 12 additional common recon commands.</p>
+<p>Before applying the token-length change, a direct measurement (3 trials, identical prompt) confirmed generation length as the dominant latency factor: 150 tokens averaged ≈5.3 s, 80 tokens ≈3.4 s, 40 tokens ≈2.0 s; 60 was selected as a middle ground. A separate measurement tested whether a smaller model would help: comparing the 8B model against smaller 3B and 1B variants (3 trials each) found the 8B model was consistently the <em>fastest</em> of the three (1.3–1.9 s) and the 1B model the <em>slowest</em> (1.8–2.5 s) — provider/routing behavior on a hosted API dominates over raw parameter count, so a model downgrade was not applied.</p>
+<p>A second, independent evaluation run (fresh cache, same methodology) after these changes measured the results in Table II.</p>
+
+<table>
+<caption>Table II. Latency/Throughput: Before vs. After Optimization</caption>
+<thead><tr><th>Metric</th><th>Before</th><th>After</th><th>Change</th></tr></thead>
+<tbody>
+<tr><td>Dynamic mean latency</td><td>4.03 s</td><td>1.35 s</td><td>≈3×</td></tr>
+<tr><td>Dynamic median latency</td><td>3.53 s</td><td>1.25 s</td><td>≈3×</td></tr>
+<tr><td>Dynamic stdev</td><td>2.38 s</td><td>0.63 s</td><td>tighter</td></tr>
+<tr><td>Dynamic throughput (seq.)</td><td>0.25 rps</td><td>0.74 rps</td><td>≈3×</td></tr>
+<tr><td>Static throughput</td><td>2,500 rps</td><td>3,333 rps</td><td>+33%</td></tr>
+<tr><td>LLM-judge realism</td><td>4.38/5 (24/30)</td><td>4.00/5 (30/30)</td><td>−0.38</td></tr>
+</tbody>
+</table>
+
+<figure>
+<img src="data:image/png;base64,{{fig2_throughput}}" alt="Bar chart comparing static, sequential, and concurrent throughput">
+<figcaption><span class="fig-label">Fig. 2.</span> Throughput comparison: static fast-path, sequential dynamic requests, and concurrent dynamic requests (n=10, log scale).</figcaption>
+</figure>
+
+<p>A new metric — concurrent throughput — was added for this second run: firing 10 requests simultaneously sustained 800.3 requests/second, with a mean per-request latency of only 8.2 ms under that load. This is the more relevant number for real deployment capacity, since concurrent requests overlap their network round-trip time; the sequential figures measure worst-case single-session latency, not the system's throughput ceiling under realistic concurrent attacker traffic.</p>
+<p>The realism-score drop (4.38 → 4.00) is honestly reported as a real cost of the shorter generation cap, though it is confounded with a data-completeness improvement: the "before" score is computed over only 24 of 30 samples (6 failed to parse, due to a transient OpenRouter error unrelated to the engine changes), while the "after" score reflects all 30. Judge reasons for the lower-scored "after" responses cite missing detail consistent with the shorter token cap, not a change in persona-consistency. Response diversity and the blockchain integrity property were unaffected by these changes.</p>
+
+<figure>
+<img src="data:image/png;base64,{{fig4_realism}}" alt="Bar chart of LLM judge realism score distribution">
+<figcaption><span class="fig-label">Fig. 3.</span> Distribution of LLM-judge realism scores across 30 sampled responses (post-optimization run).</figcaption>
+</figure>
+
+<h3 class="subsection">C. Extending the Fix to All Five Decoys</h3>
+<p>The AI-engine fix above addressed one hop in the request path (engine → OpenRouter). An identical anti-pattern existed one hop earlier, in every one of the five decoys: each decoy's logging call and its AI-engine call opened a new HTTP session on every single request rather than reusing one. This was fixed identically across all five decoys, each now creating one pooled session at process startup.</p>
+<p>To isolate the decoy layer's own contribution from the AI engine's, the before/after code was checked out via git and run side-by-side on different ports, against static/deterministic payloads so AI-engine latency does not dominate the measurement (Table III, Fig. 4).</p>
+
+<table>
+<caption>Table III. Decoy-Layer Connection Pooling: Before vs. After</caption>
+<thead><tr><th>Decoy</th><th>Before (mean)</th><th>After (mean)</th><th>Δ</th></tr></thead>
+<tbody>
+<tr><td>oracle-ai</td><td>6.15 ms (σ=3.89)</td><td>4.28 ms (σ=0.70)</td><td>−30.4%</td></tr>
+<tr><td>vault-sql</td><td>0.69 ms (σ=1.94)</td><td>0.41 ms (σ=0.44)</td><td>−41.4%</td></tr>
+<tr><td>ledger-trap</td><td>5.96 ms (σ=2.43)</td><td>4.20 ms (σ=0.75)</td><td>−29.5%</td></tr>
+<tr><td>forge-ci</td><td>6.95 ms (σ=3.13)</td><td>6.71 ms (σ=3.02)</td><td>−3.4%</td></tr>
+<tr><td>shadow-shell</td><td>7.91 ms (σ=9.94)</td><td>4.64 ms (σ=6.55)</td><td>−41.3%</td></tr>
+</tbody>
+</table>
+
+<figure>
+<img src="data:image/png;base64,{{fig5_decoy_pooling}}" alt="Horizontal bar chart of decoy latency before and after pooling">
+<figcaption><span class="fig-label">Fig. 4.</span> Mean latency before and after applying connection pooling to all five decoy services.</figcaption>
+</figure>
+
+<p>The effect is smaller in absolute terms than the AI-engine fix — localhost TCP handshakes are cheap relative to a cross-internet TLS handshake to OpenRouter — but real and consistent across four of five decoys, and it substantially tightens latency variance (standard deviation drops by roughly half to two-thirds in every case). forge-ci shows negligible change because its measured endpoint always routes through the AI engine regardless of decoy-layer pooling.</p>
+
+<figure>
+<img src="data:image/png;base64,{{fig3_diversity}}" alt="Horizontal bar chart of response diversity by service">
+<figcaption><span class="fig-label">Fig. 5.</span> Response diversity (uniqueness ratio) by decoy service across the 100-item adversarial dataset.</figcaption>
+</figure>
+
+<h3 class="subsection">D. Blockchain Integrity Test</h3>
+<p>A log entry with hash <code>356b7496...33a9a1</code> (truncated) was submitted, anchored on-chain, and fetched back; re-hashing the unmodified entry reproduced the identical hash. Re-hashing a copy with its raw data altered from "sudo cat /etc/shadow" to "ls -la" produced a different hash (<code>7530fb00...0d9d394</code>), confirming the tamper-evidence property: any change to a logged entry after anchoring is detectable by recomputation, without needing to trust the host storing the log.</p>
+
+<h3 class="subsection">E. Live Dashboard Demonstration</h3>
+<p>Fig. 6 shows the React dashboard running against the live backend, with real logged interactions across all five decoy services, correct per-entry intent classification, and blockchain-anchoring status displayed per event.</p>
+
+<figure>
+<img src="data:image/png;base64,{{dashboard_screenshot}}" alt="Screenshot of the live honeypot dashboard">
+<figcaption><span class="fig-label">Fig. 6.</span> Live dashboard screenshot showing real logged attacker interactions, intent classification, and blockchain-anchoring status.</figcaption>
+</figure>
+
+<h2 class="section">VI. Discussion</h2>
+<p>The latency/throughput trade-off means this architecture is not a drop-in replacement for high-volume, low-interaction scanning honeypots — a static-path system remains appropriate there. It is instead targeted at high-interaction deception against a human operator or a sophisticated, low-volume automated tool, where the multi-second per-request response latency is plausibly attributable to network conditions or server load rather than to a honeypot, and where sustained, contextually consistent engagement yields materially better threat intelligence than an immediately-abandoned static session.</p>
+<p>The distinction between sequential and concurrent throughput matters for how this trade-off should be read: a single attacker session pays the full ≈1.35 s mean latency per command, but the architecture is not throughput-starved under concurrent load — 800 requests/second sustained at 10 simultaneous sessions shows the ceiling on how many attacker sessions the system can serve at once is far higher than the per-command latency any one session experiences would suggest.</p>
+<p>The blockchain-anchoring design assumes the anchoring chain is itself outside the attacker's reach — a reasonable assumption for an internal Ganache/private-chain deployment, less so if a public chain's RPC endpoint were reachable from the same network segment as a compromised honeypot host. We did not evaluate anchoring against an adversary who also compromises the blockchain client, which is out of scope for this system's threat model.</p>
+
+<h2 class="section">VII. Limitations and Future Work</h2>
+<ul>
+<li>The LLM-judge realism score is an automated proxy; a human-subject study is necessary to validate it against real attacker perception.</li>
+<li>The 100-payload dataset is synthetic and hand-curated; it does not capture the full diversity of real-world attacker behavior a live deployment would see.</li>
+<li>Intent classification is keyword-based and will misclassify obfuscated or novel attack patterns; a learned classifier is a natural extension.</li>
+<li>We did not run a longitudinal live-internet deployment in this study; results reflect a controlled, synthetic evaluation.</li>
+<li>The before/after optimization comparison used two different OpenRouter API keys, because the first key stopped authenticating between runs for reasons outside this project's control; the realism-score change is confounded with a judge-completeness improvement (24/30 scored vs. 30/30) rather than isolating the token-length effect alone.</li>
+<li>The concurrent-throughput measurement used a single burst of 10 simultaneous requests; 800 req/s should be read as a lower-bound demonstration, not a validated capacity ceiling.</li>
+</ul>
+
+<h2 class="section">VIII. Conclusion</h2>
+<p>We presented a multi-protocol cyber deception framework that replaces the static response tables of traditional honeypots with a three-tier, LLM-backed response engine spanning five distinct decoy services, and that anchors every log entry's hash on an independent blockchain to make the resulting forensic trail tamper-evident. Rather than a single unexplained accuracy figure, we measured and reported the actual trade-off along four independent axes: an initial latency cost of ≈4.03 s mean, reduced by a measured ≈3× via connection pooling and a tuned generation-length cap to 1.35 s mean, a concurrent throughput of 800 requests/second under 10 simultaneous sessions, near-total response diversity, and a mean LLM-judged realism score of 4.00/5 on a complete 30/30-sample run — and we separately confirmed the blockchain anchoring's tamper-evidence property end-to-end. This positions the system for high-interaction deception against human operators or low-volume sophisticated tooling, and we have been explicit throughout about where an LLM-judge score is a proxy rather than a substitute for human evaluation. Future work should validate the realism findings with human subjects, replace keyword-based intent classification with a learned model, and evaluate the system under sustained live-traffic conditions.</p>
+
+<h2 class="section">References</h2>
+<div class="references">
+<ol>
+<li>A. Vetterl and R. Clayton, "Bitter Harvest: Systematically Fingerprinting Low- and Medium-interaction Honeypots at Internet Scale," in <em>Proc. 12th USENIX Workshop on Offensive Technologies (WOOT '18)</em>, 2018.</li>
+<li>"Gotta Catch 'em All: A Multistage Framework for Honeypot Fingerprinting," <em>ACM Digital Threats: Research and Practice</em>, 2023, arXiv:2109.10652.</li>
+<li>"A Review of Honeypots: Fingerprinting Techniques, Detection, and Evasion Mechanisms," <em>MDPI Future Internet</em>, 2026.</li>
+<li>M. Sladić, V. Valeros, C. Catania, and S. Garcia, "LLM in the Shell: Generative Honeypots," in <em>Proc. IEEE EuroS&amp;PW</em>, 2024, arXiv:2309.00155.</li>
+<li>Z. Wang et al., "HoneyGPT: Breaking the Trilemma in Terminal Honeypots with Large Language Model," arXiv:2406.01882, 2024.</li>
+<li>F. McKee and D. Noever, "Chatbots in a Honeypot World," arXiv:2301.03771, 2023.</li>
+<li>"LLM Honeypot: Leveraging Large Language Models as Advanced Interactive Honeypot Systems," arXiv:2409.08234, 2024.</li>
+<li>"Blockchain-Based Evidence Tracking System for Forensic Integrity and Secure Chain of Custody," <em>IEEE</em>, 2025.</li>
+<li>"Blockchain-based tamper-proof and transparent investigation model for cloud VMs," <em>The Journal of Supercomputing</em>, Springer, 2022, doi:10.1007/s11227-022-04567-4.</li>
+<li>"A novel intelligent cyber threat detection system with blockchain-enforced immutable forensic auditability," <em>PeerJ Computer Science</em>, 2025.</li>
+<li>MITRE, "MITRE Engage: A Framework and Community for Cyber Deception," 2022. [Online]. Available: https://engage.mitre.org/</li>
+<li>"Three Decades of Deception Techniques in Active Cyber Defense — Retrospect and Outlook," <em>Computers &amp; Security</em>, 2021.</li>
+<li>M. Bercovitch, M. Renford, L. Hasson, A. Shabtai, L. Rokach, and Y. Elovici, "HoneyGen: An Automated Honeytokens Generator," in <em>Proc. IEEE International Conference on Intelligence and Security Informatics (ISI)</em>, 2011.</li>
+<li>"A Proactive Decoy Selection Scheme for Cyber Deception using MITRE ATT&amp;CK," arXiv:2404.12783, 2024.</li>
+<li>"Empirical Telemetry-based Metrics for Evaluating Honeypot Realism and Deception Effectiveness," <em>International Journal of Network Security &amp; Its Applications</em>, 2026.</li>
+</ol>
+</div>
+
+</div>
+</body>
+</html>

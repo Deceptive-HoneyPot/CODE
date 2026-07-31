@@ -38,29 +38,42 @@ paper presents a multi-protocol cyber deception framework that replaces static
 response tables with a large language model (LLM) response engine, producing
 context-aware, session-consistent output for five decoy services (SSH, an
 internal AI API, PostgreSQL, an Ethereum JSON-RPC node, and Jenkins CI/CD)
-while retaining a fast static path for the routine majority of traffic. Every
-interaction is intent-classified, SHA-256 hashed, and anchored as a transaction
-on a local Ethereum chain, giving the resulting audit trail tamper-evidence
-independent of the logging host's integrity. We evaluate the system against a
-static-honeypot baseline along four axes -- sequential latency/throughput,
-concurrent throughput, response diversity across a 100-payload adversarial
-dataset, and an LLM-judge realism score -- and report the measured trade-off
-explicitly rather than a single composite metric. After an optimization pass
-(HTTP connection pooling applied across the response engine and all five
-decoys, a tuned generation-length cap, and a widened static fast-path), the
-system achieves a mean dynamic-path latency of 1.35~s (down from an initial
-4.03~s, a $\approx$3$\times$ improvement), a sequential throughput of 0.74
-requests/second, and a concurrent throughput of 800 requests/second under 10
-simultaneous attacker sessions -- versus 3{,}333 requests/second for the static
-fast-path. It maintains a response-diversity (uniqueness) ratio of 0.95--1.00
-across all five decoy services versus near-zero for a static baseline by
-construction, and a mean LLM-judged realism score of 4.00/5 ($\sigma = 1.36$,
-$n = 30/30$ sampled responses scored). We report the optimization pass's
-honest cost -- a 0.38-point drop in judged realism from a shorter
-generation-length cap -- alongside the throughput gain, and discuss where this
-trade-off is acceptable (human-operated intrusion, not internet-wide scanning)
-and the limitations of automated realism scoring as a proxy for human
-deception studies.
+while retaining a fast static path for the $\approx$80\% of traffic that is
+routine. Every interaction is intent-classified, SHA-256 hashed, and anchored
+as a transaction on a local Ethereum chain, giving the resulting audit trail
+tamper-evidence independent of the logging host's integrity. We evaluate the
+system against a static-honeypot baseline along four axes -- sequential
+latency/throughput, concurrent throughput, response diversity, and an
+LLM-judge realism score -- across three successive evaluation runs, and
+report the measured trade-offs explicitly rather than a single composite
+metric. After an optimization pass (HTTP connection pooling applied across
+the response engine and all five decoys, a tuned generation-length cap, and a
+widened static fast-path), the system achieves a mean dynamic-path latency of
+1.35~s (down from an initial 4.03~s, a $\approx$3$\times$ improvement)
+against a 100-payload hand-written adversarial dataset, and a sequential
+throughput of 0.74 requests/second, versus 3{,}333 requests/second for the
+static fast-path. A third evaluation run replaced the hand-written dataset
+with a 200-payload dataset built from real, publicly-documented attack
+payloads (real SQLi, command-injection, XXE/Log4Shell/prompt-injection,
+Ethereum JSON-RPC, and Jenkins-exploit strings; see
+Section~\ref{sec:realworldrun}), which increased mean dynamic latency to
+2.06~s -- a genuine effect of longer, more structurally varied real payloads,
+not a regression -- and surfaced a real weakness invisible to the
+hand-written set: response diversity on the API/prompt-injection decoy
+dropped from 1.00 to 0.70 against real XXE/Log4Shell payload shapes. This
+same run also uncovered and fixed a benchmark-harness bug that had silently
+measured Redis cache-hit latency (8.2~ms, reported as ``800 requests/second'')
+instead of genuine concurrent LLM throughput; the corrected
+concurrent-throughput figure is \textbf{1.62 requests/second} at a mean
+per-request latency of \textbf{3.09~s} under 10 simultaneous sessions.
+Response diversity otherwise remained high (0.80--1.00 across four of five
+services) versus near-zero for a static baseline by construction, and the
+mean LLM-judged realism score was stable across all three runs
+(4.00--4.03/5). We report each run's numbers, the harness bug, and its
+correction explicitly rather than presenting only the most favorable
+figures, and discuss where the resulting trade-offs are acceptable
+(human-operated intrusion, not internet-wide scanning) and the limitations
+of automated realism scoring as a proxy for human deception studies.
 \end{abstract}
 
 \begin{IEEEkeywords}
@@ -182,6 +195,50 @@ depth, behavioral diversity) have been proposed recently
 in our own evaluation. We could not verify several secondary-source
 dwell-time statistics circulating for RL/LLM-driven deception systems and
 deliberately do not cite unverified numbers here -- see Section~\ref{sec:limitations}.
+
+\subsection{Direct Comparison to Cited Systems}
+
+Table~\ref{tab:comparison} places this framework against the honeypot
+systems and papers cited above. ``Interaction level'' follows the standard
+low/medium/high taxonomy (low = fixed banner/response, medium = scripted
+protocol emulation with some state, high = a real or near-real backend).
+Entries are included only where we could verify the claim from the system's
+own documentation or the cited paper; unverified secondary-source figures
+are marked as such rather than presented as fact.
+
+\begin{table*}[htbp]
+\caption{Comparison against cited honeypot systems.}
+\label{tab:comparison}
+\centering
+\begin{tabular}{@{}p{2.1cm}p{2.6cm}p{4.6cm}p{2.6cm}p{2.6cm}@{}}
+\toprule
+\textbf{System} & \textbf{Interaction level} & \textbf{AI/LLM-generated responses} & \textbf{Protocols / services} & \textbf{Tamper-evident logging} \\
+\midrule
+Cowrie \cite{cowrie} & Medium (emulated shell) or high (proxy mode) & No (static/scripted); an experimental LLM fallback mode exists in recent releases but is a single-tier call, not a static$\to$cache$\to$LLM pipeline & SSH, Telnet & No -- plain JSON/text logs \\
+T-Pot \cite{tpot} & Mixed -- orchestrates $\approx$20 independent honeypot daemons (incl. Cowrie, Dionaea) behind an ELK dashboard & No -- aggregation/visualization layer only, no response generation of its own & Broad (SSH, SMB, web, RDP, ICS/SCADA, etc.), via bundled daemons & No \\
+Dionaea \cite{dionaea} & Low--medium (scripted protocol emulation for payload capture) & No & SMB, MySQL wire protocol, SIP, FTP, TFTP & No \\
+shelLM \cite{sladic2024shellm} & High for SSH sessions specifically & Yes -- full LLM-generated shell session & SSH only & Not addressed \\
+HoneyGPT \cite{wang2024honeygpt} & High for terminal sessions & Yes -- GPT-3.5/4 via a Cowrie-derived proxy; authors report an internally-defined $\approx$92\% attack-success and $\approx$96\% deception-accuracy rate (self-reported, not independently reproduced -- treat as a single-study figure) & SSH/terminal only & Not addressed \\
+This framework & High across all five decoys & Yes -- 3-tier (static dict $\to$ Redis cache $\to$ LLM), session-history-aware, applied uniformly across 5 distinct protocol types & SSH, internal AI API, PostgreSQL, Ethereum JSON-RPC, Jenkins CI/CD & Yes -- SHA-256 per log entry, anchored to an Ethereum chain \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+Two gaps in the cited literature motivate this framework's design choices
+rather than being incidental: first, LLM-backed deception work to date
+(\cite{sladic2024shellm}, \cite{wang2024honeygpt}, \cite{mckee2023chatbots},
+\cite{llmhoneypot2024}) is concentrated on a single protocol (SSH/terminal);
+we are not aware of a prior system applying an LLM response engine uniformly
+across five heterogeneous protocol types (shell, REST/chat API, SQL,
+JSON-RPC, CI/CD webhook) behind one shared backend. Second, a
+systematization-of-knowledge survey covering both honeypots and LLMs
+\cite{sokhoneypotllm2025} does not discuss blockchain or tamper-evident
+logging as a honeypot design axis at all, and we found no honeypot-specific
+paper combining hash-anchoring with decoy logging -- the closest related
+work is general (non-honeypot) tamper-evident audit-log research
+\cite{blockchainevidence2025,cloudvmforensics2022,peerjthreat2025}. We
+report this as an absence in the literature we searched, not as a claim that
+no such system exists.
 
 \section{System Architecture}
 
@@ -338,11 +395,17 @@ LLM-backed dynamic path, using \texttt{evaluate.py} against the live system.
 
 \subsection{Dataset}
 
-A 100-payload synthetic adversary dataset (\texttt{apt\_attack\_dataset.json}),
-20 payloads per decoy service, generated by \texttt{generate\_dataset.py}
-from hand-curated attack patterns (reverse shells, SQL injection, RPC abuse,
+Results in Sections~\ref{sec:baseline}--\ref{sec:blockchaintestresults} use a
+100-payload hand-curated adversary dataset
+(\texttt{apt\_attack\_dataset.json}), 20 payloads per decoy service,
+generated by an earlier version of \texttt{generate\_dataset.py} from
+hand-written attack patterns (reverse shells, SQL injection, RPC abuse,
 prompt injection, CI/CD supply-chain payloads) each tagged with a random
-nonce to defeat caching during evaluation.
+nonce to defeat caching during evaluation. Section~\ref{sec:realworldrun}
+reports a subsequent run using a 200-payload dataset (40 per service)
+rebuilt from real, publicly-documented attack payload corpora rather than
+hand-written strings -- see Section~\ref{sec:realworldrun} and the project
+README for the full source list and rationale for the switch.
 
 \subsection{Metrics}
 
@@ -394,6 +457,7 @@ and \texttt{meta-llama/llama-3.1-70b-instruct} as the judge; full raw output
 is available in \texttt{evaluation\_results.json}.
 
 \subsection{Initial Baseline}
+\label{sec:baseline}
 
 The first evaluation run, before any latency optimization, established the
 baseline in Table~\ref{tab:baseline}.
@@ -422,6 +486,7 @@ responses successfully parsed -- six judge calls returned unparseable output
 during this run and are excluded rather than assumed either way).
 
 \subsection{Optimization Pass}
+\label{sec:optimization}
 
 Profiling the baseline identified two concrete, fixable inefficiencies in
 \texttt{ai-engine/engine.py}: (1) a new \texttt{httpx.AsyncClient} -- and
@@ -468,13 +533,20 @@ LLM-judge realism & 4.38/5 (24/30) & 4.00/5 (30/30) & $-$0.38 \\
 \end{table}
 
 A new metric -- \textbf{concurrent throughput} -- was added for this second
-run: firing 10 requests simultaneously (rather than one at a time)
-sustained \textbf{800.3 requests/second}, with a mean per-request latency
-of only 8.2~ms under that load. This is the more relevant number for real
-deployment capacity, since concurrent requests overlap their network
-round-trip time; the earlier sequential figures measure worst-case
-single-session latency, not the system's throughput ceiling under
-realistic concurrent attacker traffic.
+run: firing 10 requests simultaneously (rather than one at a time). The
+first measurement of this metric reported 800.3 requests/second at a mean
+per-request latency of 8.2~ms; this figure was later discovered to be a
+benchmark-harness bug, not a genuine measurement (\texttt{evaluate.py}'s
+concurrent-throughput step reused payloads already sent once earlier in the
+same run, so they were guaranteed Redis cache hits -- the 8.2~ms was cache
+round-trip latency, not LLM latency). After fixing the harness to force a
+fresh cache miss per concurrent request (Section~\ref{sec:realworldrun}),
+the corrected figure is \textbf{1.62 requests/second} at a mean per-request
+latency of \textbf{3.09~s} under 10 concurrent sessions. This remains the
+more relevant number for real deployment capacity than the sequential
+figures, since concurrent requests overlap their network round-trip time --
+but it is three orders of magnitude lower than first reported, and the
+earlier 800~req/s figure should not be cited.
 
 The realism-score drop (4.38 $\rightarrow$ 4.00) is honestly reported as a
 real cost of the shorter generation cap, though it is confounded with a
@@ -534,6 +606,7 @@ its latency floor is set by the ai-engine's own cache lookup, not the
 decoy's connection handling.
 
 \subsection{Blockchain Integrity Test}
+\label{sec:blockchaintestresults}
 
 A log entry with hash \texttt{356b7496...33a9a1} (truncated) was
 submitted, anchored on-chain (\texttt{blockchain\_anchored: true}), and
@@ -543,9 +616,96 @@ hash. Re-hashing a copy with \texttt{raw\_data} altered from
 different hash (\texttt{7530fb00...0d9d394}), confirming the
 tamper-evidence property: any change to a logged entry after anchoring is
 detectable by recomputation, without needing to trust the host storing the
-log. This test is unaffected by the optimization pass.
+log. This test is unaffected by the optimization pass in
+Section~\ref{sec:optimization}.
+
+\subsection{Third Run: Real-World Dataset and a Benchmark-Harness Correction}
+\label{sec:realworldrun}
+
+The adversarial dataset used in
+Sections~\ref{sec:baseline}--\ref{sec:blockchaintestresults}
+(\texttt{apt\_attack\_dataset.json}) was originally hand-written:
+representative SQLi, command-injection, and RPC-abuse strings authored to
+\emph{look like} real attack traffic. To ground the evaluation in verifiably
+real attacker input rather than plausible-looking synthetic strings, the
+dataset was rebuilt to pull real, publicly-documented payloads from named
+sources: real command-injection strings for \texttt{ssh}
+(\texttt{payload-box/command-injection-payload-list}), real SQL injection
+strings for \texttt{sql} (\texttt{payload-box/sql-injection-payload-list}),
+real prompt-injection/SSRF/XXE/Log4Shell strings for \texttt{api}
+(\texttt{swisskyrepo/PayloadsAllTheThings}), the documented Ethereum
+JSON-RPC methods an exposed node's attack surface actually consists of for
+\texttt{web3}, and documented Jenkins script-console/path-traversal
+techniques for \texttt{cicd}. The dataset grew from 100 to 200 payloads
+(40/service; see the project README's ``Dataset provenance'' section for
+the full source list). \texttt{evaluate.py} was re-run in full against the
+live stack with this dataset.
+
+Two results are worth reporting on their own merits, independent of the
+earlier optimization narrative:
+
+\textbf{Response diversity on the \texttt{api} service dropped from 1.00 to
+0.70} -- the clearest signal this re-run produced that the hand-written
+dataset had missed. Inspecting the judge's per-sample reasoning
+(\texttt{evaluation\_results.json}) shows the model frequently collapses to
+a generic ``invalid request'' response when the payload is a real XXE
+(\texttt{<!ENTITY ...>}) or Log4Shell (\texttt{\$\{jndi:...\}}) string,
+rather than emulating a plausible vulnerable-parser response to that exact
+payload -- e.g. \emph{``Generic error message without any specific details
+or XML parsing error indication.''} The hand-written \texttt{api} payloads
+were simple JSON chat-style prompts the model already handled fluently, so
+this weakness was invisible until real payload shapes were used. It is now
+a concrete, evidence-backed follow-up: the \texttt{oracle-ai} decoy's
+system prompt likely needs XML/JNDI-aware few-shot examples.
+
+\textbf{A genuine bug in the evaluation harness itself was found and fixed
+during this re-run.} \texttt{bench\_concurrent\_throughput()} had reused
+\texttt{dataset[:CONCURRENCY\_LEVEL]} -- the same 10 payloads already sent
+once earlier in the same run via \texttt{diversity\_pass()}, which
+exercises the entire dataset. Because the ai-engine's Redis cache key is
+\texttt{md5(command + history)} (\texttt{ai-engine/engine.py}), these were
+guaranteed cache hits by the time the concurrent-throughput step ran,
+despite the function's docstring asserting the payloads were cache-proof.
+They were not: the dataset's nonces are generated once at dataset-build
+time, not refreshed per benchmark call. This means \textbf{the 800.3
+requests/second concurrent-throughput figure reported in
+Section~\ref{sec:optimization} was a Redis cache-hit measurement (8.2~ms
+mean latency), not a measurement of LLM throughput under concurrent
+load} -- despite being reported and discussed in Section~\ref{sec:discussion}
+as if it were. The fix appends a fresh UUID nonce to each payload
+immediately before firing the concurrent batch, forcing a genuine cache
+miss on every one. The corrected measurement is given in
+Table~\ref{tab:concurrentfix}.
+
+\begin{table}[htbp]
+\caption{Concurrent-Throughput Benchmark: Cache-Hit Bug vs. Corrected}
+\label{tab:concurrentfix}
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Metric} & \textbf{First-reported (cache-hit bug)} & \textbf{Corrected} \\
+\midrule
+Concurrent throughput (10 sessions) & 800.3 req/s & \textbf{1.62 req/s} \\
+Mean per-request latency & 8.2 ms & \textbf{3.09 s} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+This correction does not change the sequential-latency, response-diversity,
+or blockchain-integrity results in
+Sections~\ref{sec:baseline}--\ref{sec:blockchaintestresults}, which were
+each measured independently and did not share this code path. It does mean
+the Discussion's framing in Section~\ref{sec:discussion} -- that the system
+is ``not throughput-starved under concurrent load'' -- is not supported by
+this measurement and has been revised accordingly. We report the bug and
+the correction explicitly, rather than quietly substituting the corrected
+number, because the original figure was published in an earlier revision
+of this evaluation and a benchmark bug this large (three orders of
+magnitude) is itself a relevant methodological finding for anyone citing or
+reproducing this work.
 
 \section{Discussion}
+\label{sec:discussion}
 
 The latency/throughput trade-off means this architecture is not a drop-in
 replacement for high-volume, low-interaction scanning honeypots -- a
@@ -557,15 +717,24 @@ conditions or server load rather than to a honeypot, and where sustained,
 contextually consistent engagement yields materially better threat
 intelligence than an immediately-abandoned static session.
 
-The distinction between sequential and concurrent throughput matters for
-how this trade-off should be read: a single attacker session pays the full
-$\approx$1.35~s mean latency per command, but the architecture is not
-throughput-starved under concurrent load -- 800 requests/second sustained
-at 10 simultaneous sessions shows the ceiling on \emph{how many attacker
-sessions the system can serve at once} is far higher than the
-\emph{per-command latency any one session experiences} would suggest. This
-is the more relevant capacity question for a real deployment fielding many
-simultaneous low-volume sessions rather than one high-volume session.
+The distinction between sequential and concurrent throughput (Section
+\ref{sec:optimization}, corrected in Section~\ref{sec:realworldrun})
+matters for how this trade-off should be read, though the corrected
+measurement is less favorable than first reported: a single attacker
+session pays the full $\approx$2.06~s mean latency per command against the
+real-world dataset (Section~\ref{sec:realworldrun}), and under genuine
+concurrent load -- 10 simultaneous sessions, each forced to bypass the
+Redis cache -- sustained throughput is \textbf{1.62 requests/second} at a
+mean per-request latency of 3.09~s, not the 800~req/s first reported (that
+figure was a benchmark-harness bug measuring Redis cache-hit latency; see
+Section~\ref{sec:realworldrun}). The corrected number still shows the
+architecture serves concurrent sessions without the LLM round-trip time
+compounding linearly per session -- 10 concurrent requests complete in
+6.16~s wall-clock, not $\approx$20~s ($10 \times 2.06$~s) -- but the
+concurrency headroom is real, not the three-orders-of-magnitude figure the
+uncorrected benchmark implied. This is the more relevant capacity question
+for a real deployment fielding several simultaneous low-volume sessions,
+but it does not support a claim of high-volume concurrent capacity.
 
 The blockchain-anchoring design assumes the anchoring chain (or its RPC
 endpoint) is itself outside the attacker's reach -- a reasonable assumption
@@ -584,9 +753,13 @@ the entire logging pipeline before hashing).
 \item The LLM-judge realism score is an automated proxy; a human-subject
 study (as in shelLM) is necessary to validate it against real attacker
 perception.
-\item The 100-payload dataset is synthetic and hand-curated; it does not
-capture the full diversity of real-world attacker behavior a live
-deployment would see.
+\item Section~\ref{sec:realworldrun} replaced the original 100-payload
+hand-curated dataset with a 200-payload dataset built from real,
+publicly-documented attack payloads, which is a meaningful improvement over
+hand-written strings but is still not a live-traffic capture; it does not
+include the full diversity of real-world attacker \emph{behavior}
+(multi-step sessions, timing, evasion attempts) a live deployment would
+see, only realistic single-payload content.
 \item Intent classification is keyword-based and will misclassify
 obfuscated or novel attack patterns; a learned classifier is a natural
 extension.
@@ -603,9 +776,12 @@ controlled run varying only \texttt{max\_tokens} is needed to attribute
 the realism change precisely.
 \item The concurrent-throughput measurement used a single burst of 10
 simultaneous requests; it was not tested at higher concurrency levels or
-under sustained (non-burst) load, so 800 req/s should be read as a
-lower-bound demonstration that the architecture is not throughput-starved,
-not as a validated capacity ceiling.
+under sustained (non-burst) load, so the corrected 1.62~req/s
+(Section~\ref{sec:realworldrun}) should be read as a single-burst
+demonstration at one concurrency level, not as a validated capacity
+ceiling. The original 800~req/s figure this section referenced in earlier
+revisions was a benchmark-harness bug (Section~\ref{sec:realworldrun}) and
+does not describe the system.
 \end{itemize}
 
 \section{Conclusion}
@@ -616,26 +792,36 @@ LLM-backed response engine spanning five distinct decoy services, and that
 anchors every log entry's hash on an independent blockchain to make the
 resulting forensic trail tamper-evident. Rather than a single unexplained
 accuracy figure, we measured and reported the actual trade-off along four
-independent axes: an initial latency cost of $\approx$4.03~s mean, reduced
-by a measured $\approx$3$\times$ via connection pooling and a tuned
-generation-length cap to 1.35~s mean (0.4~ms for the static path
-throughout), a concurrent throughput of 800 requests/second under 10
-simultaneous sessions, near-total response diversity (0.95--1.00
-uniqueness vs.\ near-zero for a static baseline), and a mean LLM-judged
-realism score of 4.00/5 on a complete 30/30-sample run -- and we
-separately confirmed the blockchain anchoring's tamper-evidence property
-end-to-end. We reported the optimization pass's realism cost (a
-0.38-point drop, confounded with a data-completeness improvement)
-alongside its throughput gain rather than presenting only the favorable
-number. This positions the system for high-interaction deception against
-human operators or low-volume sophisticated tooling -- not as a
-replacement for the high-throughput, low-interaction honeypots that
-remain appropriate for Internet-scale scanning -- and we have been
-explicit throughout about where an LLM-judge score is a proxy rather than
-a substitute for human evaluation. Future work should validate the
-realism findings with human subjects, replace keyword-based intent
-classification with a learned model, and evaluate the system under
-sustained live-traffic conditions rather than a synthetic dataset alone.
+independent axes across three successive evaluation runs: an initial
+latency cost of $\approx$4.03~s mean, reduced by a measured
+$\approx$3$\times$ via connection pooling and a tuned generation-length cap
+to 1.35~s mean (0.4~ms for the static path throughout) against a
+hand-curated dataset, rising to 2.06~s mean against a subsequent
+200-payload dataset built from real, publicly-documented attack corpora
+rather than hand-written strings (Section~\ref{sec:realworldrun}); a
+corrected concurrent throughput of 1.62 requests/second at 3.09~s mean
+per-request latency under 10 simultaneous sessions, after finding and
+fixing a benchmark-harness bug that had silently reported an 800
+requests/second Redis cache-hit measurement as if it were LLM throughput;
+response diversity of 0.80--1.00 across four of five services against real
+payloads (0.70 for the API decoy, a genuine and now documented weakness
+against real XXE/Log4Shell payload shapes) versus near-zero for a static
+baseline; and a mean LLM-judged realism score stable at 4.00--4.03/5 across
+all three runs on complete 30/30-sample scoring -- and we separately
+confirmed the blockchain anchoring's tamper-evidence property end-to-end.
+We reported the optimization pass's realism cost (a 0.38-point drop,
+confounded with a data-completeness improvement), the real-dataset
+diversity regression, and the benchmark harness bug alongside the
+favorable numbers rather than presenting only the latter. This positions
+the system for high-interaction deception against human operators or
+low-volume sophisticated tooling -- not as a replacement for the
+high-throughput, low-interaction honeypots that remain appropriate for
+Internet-scale scanning -- and we have been explicit throughout about
+where an LLM-judge score is a proxy rather than a substitute for human
+evaluation. Future work should validate the realism findings with human
+subjects, replace keyword-based intent classification with a learned
+model, and evaluate the system under sustained live-traffic conditions
+rather than a synthetic dataset alone.
 
 \begin{thebibliography}{00}
 
@@ -668,6 +854,14 @@ sustained live-traffic conditions rather than a synthetic dataset alone.
 \bibitem{decoyselection2024} ``A Proactive Decoy Selection Scheme for Cyber Deception using MITRE ATT\&CK,'' arXiv:2404.12783, 2024.
 
 \bibitem{ijnsa2026telemetry} ``Empirical Telemetry-based Metrics for Evaluating Honeypot Realism and Deception Effectiveness,'' \emph{International Journal of Network Security \& Its Applications}, 2026.
+
+\bibitem{cowrie} Cowrie SSH/Telnet Honeypot, GitHub repository. [Online]. Available: https://github.com/cowrie/cowrie
+
+\bibitem{tpot} T-Pot: The All In One Multi Honeypot Platform, GitHub repository. [Online]. Available: https://github.com/telekom-security/tpotce
+
+\bibitem{dionaea} Dionaea Honeypot, GitHub repository. [Online]. Available: https://github.com/DinoTools/dionaea
+
+\bibitem{sokhoneypotllm2025} ``SoK: Honeypots and Large Language Models -- Systematization of a Growing Intersection,'' arXiv:2510.25939, 2025.
 
 \end{thebibliography}
 

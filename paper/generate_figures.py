@@ -74,9 +74,13 @@ plt.close(fig)
 
 
 # --- Figure 2: Throughput comparison (static, dynamic-sequential, dynamic-concurrent) ---
+# Concurrent figure is read live from evaluation_results.json (corrected
+# cache-miss measurement, Section V.E) rather than hardcoded, after a bug
+# where a stale hardcoded 800.30 (the pre-fix cache-hit artifact) silently
+# diverged from the real run's numbers.
 fig, ax = plt.subplots(figsize=(3.4, 2.6), dpi=200)
 labels = ["Static\nfast-path", "Dynamic\n(sequential)", "Dynamic\n(concurrent,\nn=10)"]
-values_rps = [3333.33, 0.74, 800.30]
+values_rps = [3333.33, 0.74, results["concurrent_throughput"]["throughput_rps"]]
 colors2 = [BLUE, ORANGE, AQUA]
 bars = ax.bar(labels, values_rps, color=colors2, width=0.55)
 ax.set_yscale("log")
@@ -108,7 +112,8 @@ for b, v in zip(bars, ratios):
 style_ax(ax)
 ax.xaxis.grid(True)
 ax.yaxis.grid(False)
-ax.set_title("Response Diversity by Decoy Service (n=20 each)", fontsize=9.5, pad=10)
+n_per_service = diversity[services[0]]["n"] if services else 0
+ax.set_title(f"Response Diversity by Decoy Service (n={n_per_service} each)", fontsize=9.5, pad=10)
 fig.tight_layout()
 fig.savefig(FIG_DIR / "fig3_diversity.png", bbox_inches="tight")
 plt.close(fig)

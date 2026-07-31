@@ -57,9 +57,9 @@ and the backend communicate over an internal Docker network.
 | `ai-engine/` | 3-tier response engine: static dict -> Redis cache -> OpenRouter LLM call |
 | `backend/` | Central API: intent classification, SHA-256 hashing, blockchain anchoring, Redis storage, WebSocket broadcast |
 | `dashboard/` | React live-attack dashboard |
-| `apt_attack_dataset.json` | 100-payload synthetic adversary dataset (20 per service) used for evaluation |
+| `apt_attack_dataset.json` | 200-payload real-world adversary dataset (40 per service) used for evaluation |
 | `evaluate.py` | Evaluation harness: latency/throughput, response diversity, LLM-judge realism scoring |
-| `generate_dataset.py` | Regenerates `apt_attack_dataset.json` |
+| `generate_dataset.py` | Rebuilds `apt_attack_dataset.json` from real public payload corpora (see below) |
 
 ## Running locally without Docker
 
@@ -101,6 +101,44 @@ docker compose up --build
 
 Dashboard: http://localhost:3000 · Backend API: http://localhost:3001
 
+## Deploying to capture live internet traffic
+
+Everything above runs the stack locally, with no real attacker traffic —
+the "live attack feed" stays empty until something actually connects to
+one of the exposed decoy ports. Capturing genuine live attacks (the
+organic complement to the real-world *payload* dataset above) requires
+exposing the proxy's ports to the public internet from a real host with a
+public IP. **This is a real security-relevant action with consequences —
+do it deliberately, not as a default:**
+
+- **Use a disposable cloud VM, not a home network or work machine.**
+  Internet-facing honeypot ports draw scanning and exploitation traffic
+  within minutes of going live; isolate it from anything else you run.
+- **Only the `proxy` and `dashboard` containers should ever be
+  internet-facing** (see docker-compose.yml) — never expose the
+  `backend`, `redis`, `postgres`, or `ganache` ports directly.
+- **Put the dashboard behind auth or a private network (e.g. a VPN/SSH
+  tunnel or a firewalled admin IP allowlist)** before exposing the decoy
+  ports — the dashboard itself has no login, and while it only *displays*
+  attacker telemetry, that telemetry can include attacker IPs and raw
+  payloads you may not want publicly browsable.
+- **Set real budget/rate limits on your OpenRouter API key.** Every
+  unrecognized command an attacker sends triggers a real, billed LLM
+  call; a scripted scanner hitting an exposed decoy can generate sustained
+  API cost with no cap unless you set one on the OpenRouter dashboard.
+- **Check your cloud provider's and hosting country's policy on running
+  honeypots/deception infrastructure** before exposing anything —
+  some providers restrict or prohibit it in their acceptable-use policy.
+- Typical flow: provision a VM, install Docker, clone this repo, `cp
+  .env.example .env` with your own `OPENROUTER_API_KEY`, open only the
+  proxy's five ports (2222, 8080, 5433, 8545, 9090) plus the dashboard
+  port behind your chosen access control, then `docker compose up -d`.
+
+This step was intentionally **not** performed as part of building this
+project's dataset/dashboard work — it's a deployment decision for
+whoever operates the resulting instance, not something to do
+automatically from a development environment.
+
 ## Evaluation
 
 `evaluate.py` measures the system against a static-honeypot baseline using
@@ -112,12 +150,36 @@ score:
 2. **Concurrent throughput** — `CONCURRENCY_LEVEL` simultaneous requests
    fired at once (default 10), measuring sustained req/s under concurrent
    attacker sessions rather than one-at-a-time latency.
-3. **Response diversity** — fraction of distinct outputs across the 100-item
+3. **Response diversity** — fraction of distinct outputs across the 200-item
    APT dataset, as a proxy for resistance to signature-based fingerprinting.
 4. **LLM-judge realism score** — a second, independent LLM call rates each
    response 1-5 on how convincingly it imitates a real system. This is an
    automated proxy metric, not a human-subject study — see `evaluate.py`
    and the paper's Limitations section for the exact prompt and caveats.
+
+### Dataset provenance
+
+`apt_attack_dataset.json` is built by `generate_dataset.py` by downloading
+real, publicly documented attack payloads (not hand-written or model-generated):
+
+| Service | Real source |
+|---|---|
+| `ssh` | [`payload-box/command-injection-payload-list`](https://github.com/payload-box/command-injection-payload-list) — real OS command-injection strings (recon, exfiltration, obfuscated, time-based) |
+| `sql` | [`payload-box/sql-injection-payload-list`](https://github.com/payload-box/sql-injection-payload-list) — real SQLi strings for MySQL, PostgreSQL, MSSQL, Oracle, SQLite |
+| `api` | [`swisskyrepo/PayloadsAllTheThings`](https://github.com/swisskyrepo/PayloadsAllTheThings) — Prompt Injection, SSRF, XXE, and Log4Shell sections |
+| `web3` | Real Ethereum JSON-RPC method names (`eth_sendRawTransaction`, `personal_unlockAccount`, `admin_addPeer`, etc.) — for an exposed RPC node the method call itself *is* the documented attack, per the public Ethereum JSON-RPC spec |
+| `cicd` | Real Jenkins remote-API endpoints and exploitation techniques from Jenkins Security Advisories (script-console RCE, job path traversal, pipeline `sh`-step abuse) |
+
+Each dataset entry keeps a `"source": "real-world-payload-corpus"` field for
+provenance. Fetched payloads are cached in `real_data_cache/` so
+`generate_dataset.py` still works offline after the first run.
+
+Regenerate it with:
+
+```bash
+pip install requests
+python3 generate_dataset.py
+```
 
 See `BENCHMARK_REPORT.md` for a documented latency/throughput optimization
 pass (connection pooling, tuned generation length, widened static

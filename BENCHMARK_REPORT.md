@@ -1,5 +1,82 @@
 # AI Honeypot vs. Static Honeypot — Evaluation Report
 
+## Update: Re-run against the real-world attack dataset
+
+`apt_attack_dataset.json` was rebuilt by `generate_dataset.py` to pull real,
+publicly-sourced attack payloads (real SQLi strings, real command-injection
+strings, real XXE/Log4Shell/prompt-injection payloads, real Ethereum
+JSON-RPC methods, real Jenkins exploit techniques — see the README's
+"Dataset provenance" section) instead of hand-written synthetic ones,
+growing the set from 100 to 200 payloads (40 per service). `evaluate.py`
+was re-run in full against this new dataset, live, against the running
+stack (Redis, Ganache, backend, ai-engine), with real OpenRouter API calls
+throughout — not projected from the old numbers.
+
+**A pre-existing bug in `evaluate.py` was also found and fixed during this
+re-run.** `bench_concurrent_throughput()` reused `dataset[:CONCURRENCY_LEVEL]`
+verbatim — the same 10 payloads already sent once earlier in the run via
+`diversity_pass()`, which runs the *entire* dataset. Because the ai-engine
+caches responses in Redis keyed on `md5(command + history)`
+(`ai-engine/engine.py`), by the time the concurrent-throughput step ran
+these were guaranteed Redis cache hits, not fresh LLM calls — despite the
+function's docstring claiming "unique nonce-tagged payloads" defeated
+caching. It didn't: the dataset's nonces are baked in once at generation
+time, not refreshed per benchmark call. This inflated the old "800 req/s"
+/ new-run "1,169.79 req/s" figures by roughly three orders of magnitude —
+they measured Redis round-trip latency (~5.6ms), not LLM throughput. The
+fix appends a fresh UUID nonce to each payload's command immediately
+before firing the concurrent batch, guaranteeing a cache miss. The
+corrected number below (1.62 req/s at 10 concurrent sessions, mean
+per-request latency 3.09s) is the first trustworthy concurrent-throughput
+measurement this project has produced; **all concurrent-throughput
+figures from prior runs, including the "800 req/s" figure in the original
+evaluation and this document's earlier revision, should be considered
+invalid** and are superseded by this corrected number.
+
+| Metric | Old (100-item synthetic dataset, cache-hit bug) | New (200-item real dataset, bug fixed) |
+|---|---|---|
+| Dynamic latency (mean) | 1.35 s | 2.06 s |
+| Dynamic latency (median) | — | 1.80 s |
+| Sequential throughput (dynamic) | — | 0.49 req/s |
+| Concurrent throughput (10 sessions) | ~~800 req/s~~ (cache-hit artifact, invalid) | **1.62 req/s** (corrected, genuine cache miss) |
+| Concurrent per-request latency (mean) | ~~5.6 ms~~ (cache-hit artifact, invalid) | **3.09 s** (corrected) |
+| Response diversity (ssh) | 0.95 | 0.925 |
+| Response diversity (sql) | 1.00 | 1.00 |
+| Response diversity (web3) | 1.00 | 0.80 |
+| Response diversity (cicd) | 1.00 | 0.90 |
+| Response diversity (api) | 1.00 | **0.70** |
+| Avg. response length (words) | 11.3 | 8.6 |
+| LLM-judge realism (mean) | 4.00 / 5 | 4.03 / 5 |
+| LLM-judge realism (σ) | 1.36 | 1.50 |
+| LLM-judge distribution | 1:4 · 2:0 · 3:3 · 4:8 · 5:15 | 1:4 · 2:2 · 3:2 · 4:3 · 5:19 |
+
+**The latency increase (1.35s → 2.06s) is a real effect of harder inputs,
+not a regression.** The synthetic dataset's payloads were short, templated
+one-liners; the real dataset includes longer, more structurally varied
+payloads (multi-field JSON, nested XML entities, multi-clause SQL) that
+take the model longer to process and respond to realistically.
+
+**The `api` service's diversity dropped from 1.00 to 0.70 — the most
+notable real finding from this re-run**, and inspecting
+`judge_sample_details` in `evaluation_results.json` shows why: several raw
+XXE (`<!ENTITY ...>`) and Log4Shell (`${jndi:...}`) payloads from the real
+dataset caused the LLM to fall back to a generic, repeated "invalid
+request" / "malformed input" error rather than emulating a plausible
+XML-parser or vulnerable-service response to that exact payload shape —
+e.g. one judge note reads *"Generic error message without any specific
+details or XML parsing error indication."* This is a genuine weakness the
+synthetic dataset never surfaced (its `api` payloads were simple JSON
+chat-style prompts the model handles fluently) and is now documented as a
+concrete follow-up: the `oracle-ai` decoy's system prompt likely needs
+XML/JNDI-aware examples to keep response diversity up against these real
+payload shapes.
+
+Full raw output: `evaluation_results.json` (config:
+`diversity_dataset_size: 200`, `judge_sample_size: 30`,
+`static_trials: 30`, `dynamic_latency_trials: 20`).
+
+---
+
 ## Overview
 
 This report compares the system's static fast-path response (functionally
@@ -104,16 +181,26 @@ by the decoy's own connection handling.
 
 ### Concurrent throughput (new measurement)
 
+> **Corrected below (see "Update" section at the top of this document).**
+> The 800.3 req/s / 8.2 ms figures originally reported here were later
+> found to be a benchmark-harness bug: `bench_concurrent_throughput()`
+> reused payloads already sent once earlier in the same run, so these
+> numbers measured Redis cache-hit latency, not LLM throughput. The
+> corrected figures are **1.62 req/s** at **3.09 s** mean per-request
+> latency. The paragraph below is left as originally written, for the
+> historical record of what was believed at the time — do not cite the
+> numbers in this subsection as current.
+
 The sequential numbers above measure one request at a time — but a real
 deployment serves multiple attacker sessions simultaneously. A separate
 test fires 10 requests concurrently and measures sustained throughput:
 
-| Metric | Value |
+| Metric | Value (originally reported, later found to be a cache-hit artifact) |
 |---|---|
 | Concurrency level | 10 simultaneous requests |
 | Wall time | 0.0125 s |
-| **Throughput** | **800.3 req/s** |
-| Per-request latency (mean) | 8.2 ms |
+| ~~**Throughput**~~ | ~~**800.3 req/s**~~ — corrected to **1.62 req/s** |
+| ~~Per-request latency (mean)~~ | ~~8.2 ms~~ — corrected to **3.09 s** |
 
 This number is dramatically higher than the sequential figure because
 concurrent requests overlap their network-wait time — the bottleneck is
@@ -123,6 +210,9 @@ single request still takes over a second end-to-end when measured alone.
 This distinction — sequential per-request latency vs. sustained
 concurrent throughput — is the more accurate way to reason about this
 architecture's real-world capacity than a single "requests/sec" number.
+**(This reasoning is directionally still correct — concurrent requests do
+overlap network-wait time — but the magnitude above was wrong; see the
+correction note above and the "Update" section for the real numbers.)**
 
 The dynamic path remains **orders of magnitude slower per-request** than
 the static path; this is an architectural trade-off (network + inference

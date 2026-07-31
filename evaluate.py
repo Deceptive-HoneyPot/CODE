@@ -26,6 +26,7 @@ import json
 import os
 import statistics
 import time
+import uuid
 from pathlib import Path
 
 import aiohttp
@@ -97,10 +98,18 @@ async def bench_concurrent_throughput(session, dataset):
     """
     Measures sustained throughput under CONCURRENCY_LEVEL simultaneous
     attacker sessions, as opposed to bench_dynamic's one-request-at-a-time
-    latency measurement. Uses unique (nonce-tagged) payloads so every
-    request is a genuine cache miss, reflecting worst-case concurrent load.
+    latency measurement. Appends a fresh per-call nonce to each payload's
+    command so every request is a genuine cache miss (the ai-engine caches
+    on hashlib.md5(command + history)) even though this same dataset slice
+    was already sent once earlier, during diversity_pass - reusing the raw
+    dataset entries here would silently measure Redis cache-hit latency
+    instead of concurrent LLM throughput.
     """
-    sample = dataset[:CONCURRENCY_LEVEL]
+    base_sample = dataset[:CONCURRENCY_LEVEL]
+    sample = [
+        {**p, "command": f"{p['command']} #{uuid.uuid4().hex[:8]}"}
+        for p in base_sample
+    ]
     t0 = time.perf_counter()
     results = await asyncio.gather(*[call_engine(session, p) for p in sample])
     wall_time = time.perf_counter() - t0

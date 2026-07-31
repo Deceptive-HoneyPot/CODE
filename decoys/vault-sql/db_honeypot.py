@@ -19,7 +19,6 @@ async def log_it(ip, query):
         pass
 
 async def get_ai_response(query):
-    import json
     try:
         payload = {"command": query, "history": [], "service": "sql"}
         async with aiohttp.ClientSession() as s:

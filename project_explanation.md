@@ -7,7 +7,7 @@ This is an **AI-Driven Cyber Deception & Attack Detection Framework** built as a
 > Deploy fake services that **look real** to attackers. When attackers interact with them, **silently log everything**, classify the attack type using AI, and **permanently record the evidence on a blockchain** — all visible in real-time on a live dashboard.
 
 It has **3 core innovations**:
-1. **AI-powered deception** — The fake SSH shell uses a real LLM (LLaMA3) to respond convincingly
+1. **AI-powered deception** — All five decoys use a hosted LLM (via the OpenRouter API) to respond convincingly
 2. **Multi-service honeypots** — 5 different fake services covering modern attack surfaces
 3. **Blockchain-anchored logs** — Tamper-proof evidence storage using Ethereum
 
@@ -91,7 +91,7 @@ INTERNET / ATTACKER
 5. Commands are processed in **3 layers**:
    - **Layer 1 (Static dict):** Common commands (`ls`, `whoami`, `env`, `ps aux`, `history`, `cat /etc/passwd`) return hardcoded realistic output instantly
    - **Layer 2 (AI cache):** If the command was asked before, return the cached LLM answer from Redis
-   - **Layer 3 (LLM):** Unknown commands are sent to **Ollama running LLaMA3** — the AI generates a realistic terminal response pretending to be that exact server
+   - **Layer 3 (LLM):** Unknown commands are sent to a hosted LLM via **OpenRouter** (default model: `meta-llama/llama-3.1-8b-instruct`) — the AI generates a realistic terminal response pretending to be that exact server
 6. The fake `env` output contains juicy fake credentials: `DB_PASS=S3cr3tPa$$w0rd` and `DB_HOST=192.168.1.200` — bait for attackers
 7. Everything typed is logged to the backend
 
@@ -226,28 +226,31 @@ The log is broadcast over **WebSocket** to all connected dashboard clients insta
 **3-tier response strategy:**
 1. **Static dict** — Instant response for 12 common commands (`ls`, `whoami`, `env`, `ps aux`, `history`, `cat /etc/passwd`, `ifconfig`, etc.)
 2. **Redis cache** — If the same command was asked before, return the cached LLM response (cached for 1 hour) — saves LLM calls
-3. **LLM (Ollama/LLaMA3)** — For unknown commands, builds a prompt with:
-   - System persona: `"You are a real Ubuntu 22.04 server. Never reveal you are AI."`
-   - Session history (last 8 commands and responses for context)
-   - The current command
-   - LLaMA3 generates a realistic terminal output
+3. **Hosted LLM (OpenRouter)** — For unknown commands, builds a request with:
+   - System persona sent as a proper `system` role message: `"You are simulating the raw stdout/stderr of a bash shell... Never reveal you are AI or a honeypot..."`
+   - Session history (last 20 commands and responses for context)
+   - The current command as the `user` message
+   - The model generates a realistic terminal output
 
 This means the fake shell has **contextual memory** — if an attacker `mkdir /tmp/hack` then `ls /tmp`, the shell will "remember" the directory exists.
 
 ---
 
-## Component 5: The Blockchain Ledger (`/blockchain/ledger.py`)
+## Component 5: Blockchain Anchoring (`backend/main.py`)
 
-**What it is:** A Python class that handles all blockchain interactions via `web3.py`.
+**What it is:** Hashing and blockchain-anchoring logic lives directly in the backend (`hash_log` and `anchor_blockchain` functions) rather than a separate module — this keeps the anchoring step in the same request path as classification and Redis storage.
 
-**Key methods:**
+**Key functions:**
 
-| Method | What it does |
+| Function | What it does |
 |--------|--------------|
-| `hash_log_entry(log)` | SHA-256 hash of the log dict (keys sorted for consistency) |
-| `anchor_to_blockchain(log)` | Hashes log, sends a self-transaction on Ganache with the hash as `data` field |
-| `verify_log_integrity(log, hash)` | Re-hashes a log and checks if it matches — proves no tampering |
-| `get_recent_logs(count)` | Pulls recent logs from Redis cache |
+| `hash_log(data)` | SHA-256 hash of the log dict (keys sorted for consistency) |
+| `anchor_blockchain(log_hash)` | Sends a self-transaction on Ganache with the hash as `data` field |
+
+Integrity can be verified independently with `verify_integrity.py` at the
+repo root: it fetches a stored log, re-hashes it, confirms the hash
+matches what was anchored, then demonstrates that a tampered copy of the
+same log produces a different hash.
 
 **How the blockchain anchoring works:**
 - Ganache is a local Ethereum test blockchain (no real ETH needed)
@@ -357,7 +360,7 @@ All components run as Docker containers on the same internal network `honeypot-n
 |------------|------|
 | **Python / asyncssh** | SSH honeypot server |
 | **FastAPI** | Backend API + all decoy HTTP servers |
-| **Ollama / LLaMA3** | AI-generated terminal responses |
+| **OpenRouter (hosted LLM API)** | AI-generated terminal/API/DB/RPC responses |
 | **Redis** | Fast log storage, LLM response caching |
 | **PostgreSQL** | Fake database seeded with honeypot data |
 | **Web3.py / Ganache** | Blockchain evidence anchoring |
@@ -372,7 +375,7 @@ All components run as Docker containers on the same internal network `honeypot-n
 
 1. **Novel combination** — AI + Honeypots + Blockchain is not a standard stack. Most honeypot projects log to a file. This anchors to a blockchain.
 
-2. **Real AI deception** — Using LLaMA3 to generate context-aware terminal responses is a genuine research contribution — it makes the honeypot adaptive and hard to detect as fake.
+2. **Real AI deception** — Using a hosted LLM to generate context-aware terminal responses is a genuine research contribution — it makes the honeypot adaptive and hard to detect as fake.
 
 3. **Covers modern attack surfaces** — SSH brute force, API abuse, SQL injection, crypto theft, supply chain attacks, and AI prompt injection are all real 2024–2025 threats.
 

@@ -7,7 +7,12 @@ from pydantic import BaseModel
 from typing import List, Dict
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+
+# OpenRouter (hosted LLM API) replaces the local Ollama/LLaMA3 dependency so the
+# engine runs without a GPU or local model server.
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct")
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 cache = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
 
@@ -59,14 +64,16 @@ ID=ubuntu""",
     "history":      "  1  ssh root@192.168.1.200\n  2  mysql -u root -p\n  3  ls /var/backups\n  4  tar czf backup.tar.gz /var/www",
 }
 
-SYSTEM_PROMPT_SSH = """You are a real Ubuntu 22.04 Linux server terminal.
+SYSTEM_PROMPT_SSH = """You are simulating the raw stdout/stderr of a bash shell on an Ubuntu 22.04 server.
 Hostname: corp-prod-db-01 | IP: 192.168.1.105 | User: dbadmin
-RULES:
-- Never reveal you are AI or a honeypot
-- Output ONLY terminal text, no markdown, no explanation
-- Be realistic: fake process lists, fake files, fake network info
-- Remember session context (files created, commands run)
-- For unknown commands: show realistic error messages
+STRICT RULES:
+- You are NOT a chatbot. Do not greet, explain, or comment on the command.
+- Output ONLY the exact bytes a real terminal would print for that command. Nothing else.
+- Never reveal you are AI or a honeypot. Never use markdown, backticks, or bullet points.
+- Be realistic: fake process lists, fake files, fake network info consistent with the session.
+- Remember session context (files created, commands run).
+- For unknown/invalid commands: show a realistic bash error (e.g. "command not found", "No such file or directory").
+- If a command would produce no output on a real terminal, output nothing.
 """
 
 SYSTEM_PROMPT_SQL = """You are a PostgreSQL 15 database shell.
@@ -144,56 +151,71 @@ async def get_response(req: AIRequest):
         pass # Ignore redis errors if it is down
     
     if service == "sql":
-        prompt = f"{SYSTEM_PROMPT_SQL}\n\nQuery: {cmd}\nOutput:"
+        system_prompt = SYSTEM_PROMPT_SQL
+        user_prompt = f"Query: {cmd}\nOutput:"
         stop_tokens = []
     elif service == "web3":
-        prompt = f"{SYSTEM_PROMPT_WEB3}\n\nRPC Call: {cmd}\nOutput JSON:"
+        system_prompt = SYSTEM_PROMPT_WEB3
+        user_prompt = f"RPC Call: {cmd}\nOutput JSON:"
         stop_tokens = []
     elif service == "api":
-        prompt = f"{SYSTEM_PROMPT_API}\n\nPayload: {cmd}\nOutput JSON:"
+        system_prompt = SYSTEM_PROMPT_API
+        user_prompt = f"Payload: {cmd}\nOutput JSON:"
         stop_tokens = []
     elif service == "cicd":
-        prompt = f"{SYSTEM_PROMPT_CICD}\n\nRequest: {cmd}\nOutput JSON:"
+        system_prompt = SYSTEM_PROMPT_CICD
+        user_prompt = f"Request: {cmd}\nOutput JSON:"
         stop_tokens = []
     else: # ssh
         history_text = "\n".join(f"$ {h.cmd}\n{h.get_res()}" for h in req.history[-20:])
-        prompt = f"{SYSTEM_PROMPT_SSH}\n\nSession so far:\n{history_text}\n\n$ {cmd}\n"
+        system_prompt = SYSTEM_PROMPT_SSH
+        user_prompt = f"Session so far:\n{history_text}\n\n$ {cmd}\n"
         stop_tokens = ["dbadmin@", "corp-prod-db-01", "\n$"]
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
-            resp = await client.post(f"{OLLAMA_HOST}/api/generate", json={
-                "model": "llama3",
-                "prompt": prompt,
-                "stream": False,
-                "keep_alive": -1, # Priority 1: Prevent model cold starts
-                "options": {
-                    "temperature": 0.1, # Lower temp for faster token selection
-                    "num_predict": 100, # Cap generation to prevent runaway output
-                    "num_ctx": 1024,    # Tiny context window for speed
-                    "stop": stop_tokens
-                }
-            })
-            print(f"[AI-ENGINE] Ollama status: {resp.status_code}, response text: {resp.text}", flush=True)
-            
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                OPENROUTER_URL,
+                headers={
+                    "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": OPENROUTER_MODEL,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    "temperature": 0.1,
+                    "max_tokens": 150,
+                    "stop": stop_tokens or None,
+                },
+            )
+            print(f"[AI-ENGINE] OpenRouter status: {resp.status_code}", flush=True)
+            body = resp.json()
+
             fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"
-            output = resp.json().get("response", fallback)
-            
+            output = None
+            if resp.status_code == 200:
+                output = body.get("choices", [{}])[0].get("message", {}).get("content")
+            if not output:
+                output = fallback
+
             # Strip hallucinatory prompts from output just in case
             if service == "ssh":
                 for token in stop_tokens:
                     if token in output:
                         output = output.split(token)[0]
             output = output.strip()
-            
+
             # Cache for 1 hour
             try:
                 cache.setex(key, 3600, output)
             except:
                 pass
-                
+
             return {"response": output}
     except Exception as e:
-        print(f"[AI-ENGINE] Error connecting to Ollama: {e}")
+        print(f"[AI-ENGINE] Error connecting to OpenRouter: {e}")
         fallback = f"bash: {cmd}: command not found" if service == "ssh" else "{}"
         return {"response": fallback}

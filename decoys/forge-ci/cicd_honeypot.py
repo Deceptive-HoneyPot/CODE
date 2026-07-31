@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-import aiohttp, os
+import aiohttp, os, json
 from datetime import datetime
 
 app = FastAPI()
@@ -19,7 +19,6 @@ async def log_it(ip, data):
         pass
 
 async def get_ai_response(req_path, body_data):
-    import json
     try:
         cmd = f"Endpoint: {req_path}\nData: {body_data}"
         payload = {"command": cmd, "history": [], "service": "cicd"}

@@ -1,81 +1,115 @@
-# AI Honeypot vs Traditional Static Honeypot Benchmark Report
+# AI Honeypot vs. Static Honeypot — Evaluation Report
 
 ## Overview
-This benchmark compares the performance of a traditional static honeypot (simulated via hardcoded fast-paths, analogous to Cowrie) against our **Dynamic AI Engine** powered by Ollama.
 
-## Performance Metrics
+This report compares the system's static fast-path response (functionally
+equivalent to a deterministic, Cowrie-style honeypot) against its
+LLM-backed dynamic response path (OpenRouter, model
+`meta-llama/llama-3.1-8b-instruct`), using the methodology and code in
+`evaluate.py`. All numbers below are measured directly against the live
+local stack, not estimated.
 
-| Metric | Static Honeypot (Cowrie) | Dynamic AI Honeypot |
-|--------|--------------------------|----------------------|
-| **Average Latency** | 1.34 ms | 8.33 s |
-| **Throughput (Requests/sec)** | 748.62 | 0.1200 |
-| **Response Diversity (Avg Words)** | 0 (Static String) | 11 (Unique context) |
-| **Evasion Difficulty Score** | Low (Easily Fingerprinted) | Extremely High |
-| **Realism F1-Score (Classification)** | 0.00 | 0.98 |
-| **CPU Overhead** | ~19.7% | Much Higher (LLM Inference) |
+Unlike the earlier version of this report, no single "accuracy" or "F1"
+figure is reported for realism — there is no ground-truth classifier for
+"is this a convincing honeypot response," so a supervised metric like F1
+does not apply here. Instead, three separate, reproducible measurements
+are reported, each with its own methodology and limitations stated
+explicitly.
 
-## Analysis & Conclusion
+## 1. Latency and Throughput
 
-### 1. Latency & Throughput Trade-offs
-The data clearly shows that **traditional static honeypots like Cowrie** have blistering fast response times (1.34 ms) and high throughput. However, this comes at the cost of being entirely deterministic. Attackers and automated scanners use "fingerprinting" techniques to detect these static responses in milliseconds, immediately flagging the server as a honeypot and disconnecting.
+| Metric | Static fast-path (n=30) | Dynamic LLM path (n=20) |
+|---|---|---|
+| Mean latency | 0.4 ms | 4.03 s |
+| Median latency | 0.4 ms | 3.53 s |
+| Std. deviation | 0.1 ms | 2.38 s |
+| Min / Max | 0.3 / 0.7 ms | 1.04 / 8.81 s |
+| Throughput | 2,500 req/s | 0.25 req/s |
 
-Our **AI-driven Honeypot** trades raw latency (8.33 seconds per query) for **unparalleled realism**. Generating a unique, contextually aware Bash output takes significant compute time. However, in the context of an SSH session, a 5-15 second delay is easily interpreted by a human attacker as a slow network connection or a heavy server load, rather than a honeypot.
+The dynamic path is roughly **10,000x slower** and has substantially
+higher variance (min 1.04s, max 8.81s) than the deterministic fast-path,
+reflecting real network + inference latency to a hosted LLM rather than a
+local model call. This is a real cost, not a rounding error, and any
+claim about this architecture must state it plainly: it is unsuitable for
+high-volume, low-interaction scanning traffic, and appropriate only where
+sustained engagement with a smaller number of sessions is the goal.
 
-### 2. Accuracy & Evasion
-Static honeypots fail evasion tests instantly if the attacker runs an unseen command. 
-The **AI Honeypot** generated highly diverse responses (averaging **11 words** per unseen command), successfully parsing flags, pipes (`|`), and complex syntax that would break regex-based static honeypots like Cowrie.
+## 2. Response Diversity (Fingerprinting-Resistance Proxy)
 
-### 3. Final Verdict
-For massive internet-wide sweeps (where scale > realism), static honeypots remain useful. But for **High-Interaction Deception** targeting sophisticated APTs (Advanced Persistent Threats) and human operators, the AI Honeypot's dynamic generation far outweighs its latency costs. It effectively traps attackers in an endless, hyper-realistic simulation, maximizing Threat Intelligence collection.
+Measured across the full 100-item `apt_attack_dataset.json` (20 payloads
+per decoy service, each with a unique nonce to defeat caching):
 
-## Appendix: Dynamic AI Responses (5 Random Samples from 100 tests)
-To prove the capability of the AI Engine, here are exact dynamic responses generated during this benchmark for complex unseen payloads:
+| Service | Distinct / Total | Uniqueness ratio |
+|---|---|---|
+| web3 | 20 / 20 | 1.00 |
+| cicd | 20 / 20 | 1.00 |
+| sql | 20 / 20 | 1.00 |
+| ssh | 19 / 20 | 0.95 |
+| api | 20 / 20 | 1.00 |
 
-**Payload 1 (web3):** `{"jsonrpc":"2.0","method":"txpool_status","params":[],"id": "414e0ac8"}`
-```bash
-{"jsonrpc":"2.0","result":{"pending":1,"queued":0,"pendingManual":0},"id":"414e0ac8"}
-```
+A static, dictionary-based honeypot returns the same fixed template for
+any unrecognized input; its uniqueness ratio over a set of *novel*
+payloads is at or near 0 by construction. The measured ratios above
+(0.95–1.00) indicate the LLM-backed path produces a distinct response for
+almost every unique payload, which is the property that defeats
+single-packet / signature-based fingerprinting approaches such as those
+described by Vetterl and Clayton (2018). This is a proxy metric for
+fingerprinting resistance, not a direct test against a real fingerprinting
+tool — see the paper's Limitations section.
 
-**Payload 2 (web3):** `{"jsonrpc":"2.0","method":"personal_unlockAccount","params":["0xVictim","password",600],"id": "5918781c"}`
-```bash
-{"jsonrpc":"2.0","result":null,"id":"5918781c"}
-```
+Average dynamic response length: **16.2 words** (vs. 0 — a fixed string —
+for the static path).
 
-**Payload 3 (cicd):** `{"job_name": "../../../../etc/passwd", "nonce": "11540b71"}`
-```bash
-{
-"code": 401,
-"message": "Authentication required",
-"error_data": {
-"type": "UNAUTHORIZED",
-"detail": "No valid credentials provided"
-}
-}
-```
+## 3. LLM-Judge Realism Score
 
-**Payload 4 (sql):** `INSERT INTO admins (user, pass) VALUES ('hacked', '12345'); /* 33fc1f9d */`
-```bash
-INSERT 0 1
-(1 row)
+A second, independent model (`meta-llama/llama-3.1-70b-instruct`, distinct
+from the response-generating model to reduce self-evaluation bias) scored
+30 sampled responses 1–5 against the rubric in `evaluate.py`
+(`JUDGE_SYSTEM` prompt): "how convincingly does this response imitate a
+real, non-honeypot instance of this service for this exact payload."
 
-user         | pass 
------------+---------
-hacked      | 12345
-```
+| | |
+|---|---|
+| Mean score | **4.38 / 5** |
+| Std. deviation | 1.28 |
+| Scored | 24 / 30 requested |
+| Score distribution | 1: 2 · 2: 1 · 3: 1 · 4: 2 · 5: 18 |
 
-**Payload 5 (cicd):** `{"build_step": "docker run -v /:/host --privileged ubuntu chroot /host /bin/bash", "nonce": "5ce9fb41"}`
-```bash
-{
-"queueItem": {
-"id": 123,
-"url": "/job/my-job/123/"
-},
-"build": {
-"number": 1,
-"result": "SUCCESS",
-"timestamp": 1643723400
-}
-}
-```
+Six of the 30 judge calls (20%) returned a response the harness could not
+parse as the requested JSON object and are excluded rather than silently
+counted as failures or successes — this is a real limitation of using an
+LLM as a structured-output judge and is reported here rather than hidden.
+The scored distribution is bimodal-leaning-high: most responses (18/24)
+were rated maximally convincing, with a smaller cluster of low scores
+concentrated in cases where the engine produced an overly generic or
+too-informative error message (see `evaluation_results.json` →
+`judge_sample_details` for every individual score and the judge's stated
+reason).
 
+**This is an automated proxy metric, not a human-subject study.** LLM
+judges have known biases (e.g., verbosity preference) and may not track
+what a human attacker would find convincing. Prior work using human
+evaluators (Sladić et al., 2024, shelLM) reported a 0.90 true-negative
+rate under direct human interaction; that remains the stronger form of
+evidence and is recommended as follow-up work rather than assumed
+equivalent to the score reported here.
 
+## Configuration
+
+- Engine model: `meta-llama/llama-3.1-8b-instruct` (via OpenRouter)
+- Judge model: `meta-llama/llama-3.1-70b-instruct` (via OpenRouter)
+- Dataset: `apt_attack_dataset.json` (100 payloads, 5 services × 20 each)
+- Full raw results (including every judged sample): `evaluation_results.json`
+- Reproduce with: `set -a; source .env; set +a; .venv-ai/bin/python evaluate.py`
+
+## Conclusion
+
+The dynamic, LLM-backed response path trades roughly four orders of
+magnitude in latency for a measurable, reproducible increase in response
+diversity (0.95–1.00 uniqueness vs. ~0 for a static baseline) and a judged
+realism score of 4.38/5 on the payloads it was successfully scored on.
+This supports using the architecture for **high-interaction deception**
+against a human operator or low-volume sophisticated tooling, not as a
+replacement for high-throughput, low-interaction scanning honeypots, where
+a static fast-path (retained in this system for ~80% of routine commands)
+remains the appropriate choice.

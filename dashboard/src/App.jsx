@@ -34,7 +34,8 @@ export default function App() {
     fetchStats();
     const si = setInterval(fetchStats, 5000);
 
-    const ws = new WebSocket(`ws://localhost:3001/ws/live`);
+    const wsUrl = BACKEND.replace(/^http/, "ws") + "/ws/live";
+    const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
     ws.onopen  = () => setConnected(true);
     ws.onclose = () => setConnected(false);

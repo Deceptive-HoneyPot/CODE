@@ -21,7 +21,6 @@ async def log_attack(ip, data, intent_hint=""):
         pass
 
 async def get_ai_response(data):
-    import json
     try:
         payload = {"command": json.dumps(data), "history": [], "service": "api"}
         async with aiohttp.ClientSession() as s:

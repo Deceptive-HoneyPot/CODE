@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Request
-import aiohttp, os, random
+import aiohttp, os, random, json
 from datetime import datetime
 
 app = FastAPI()
@@ -19,7 +19,6 @@ async def log_it(ip, data):
         pass
 
 async def get_ai_response(method, params):
-    import json
     try:
         cmd = json.dumps({"method": method, "params": params})
         payload = {"command": cmd, "history": [], "service": "web3"}

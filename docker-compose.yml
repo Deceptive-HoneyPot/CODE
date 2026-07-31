@@ -59,10 +59,9 @@ services:
       - "8000:8000"
     environment:
       - REDIS_HOST=redis
-      - OLLAMA_HOST=http://host.docker.internal:11434
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
       - PYTHONUNBUFFERED=1
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - redis
     networks:

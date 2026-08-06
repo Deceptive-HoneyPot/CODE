@@ -63,7 +63,7 @@ async def rpc(request: Request):
         "eth_getBalance":        {"result": "0x56BC75E2D63100000"},  # 100 ETH in Wei
         "eth_blockNumber":       {"result": "0x112A880"},
         "net_version":           {"result": "1"},
-        "eth_accounts":          {"result": ["0xFakeWallet123456789ABCDEF"]},
+        "eth_accounts":          {"result": ["0x71C7656EC7ab88b098defB751B7401B5f6d8976"]},
     }
     
     if method in fake_responses:

@@ -1,0 +1,88 @@
+<!-- Tables for the paper. Property-based comparison (no re-run of prior
+     systems); any third-party number is cited "as reported". The pooling
+     table reproduces the real measured before/after from our own runs. -->
+
+<!-- ============ TABLE IV: per-service results ============ -->
+<figure id="tab-perservice">
+<table class="tbl">
+  <caption><strong>Table IV.</strong> Per-service evaluation results on the 2,500-payload corpus. Uniqueness ratio is distinct outputs over total payloads for that service; per-service realism is the mean LM-judge score over the judged sample for that service. The AI-API decoy is the clear outlier on both, quantifying the disparity discussed in Sec. VI.</caption>
+  <thead>
+    <tr><th>Decoy</th><th>Payloads (n)</th><th>Distinct outputs</th><th>Uniqueness ratio</th><th>Judged (n)</th><th>Realism (mean/5)</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>SQL (PostgreSQL)</td><td>474</td><td>470</td><td>0.992</td><td>3</td><td>5.00</td></tr>
+    <tr><td>Web3 (Ethereum RPC)</td><td>18</td><td>17</td><td>0.944</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>SSH (shell)</td><td>1862</td><td>1681</td><td>0.903</td><td>24</td><td>4.71</td></tr>
+    <tr><td>CI/CD (Jenkins)</td><td>10</td><td>9</td><td>0.900</td><td>&mdash;</td><td>&mdash;</td></tr>
+    <tr><td>AI API</td><td>136</td><td>87</td><td>0.640</td><td>3</td><td>1.00</td></tr>
+    <tr><td><strong>Overall</strong></td><td><strong>2500</strong></td><td><strong>&mdash;</strong></td><td><strong>0.64&ndash;0.99</strong></td><td><strong>30</strong></td><td><strong>4.37</strong></td></tr>
+  </tbody>
+</table>
+<figcaption class="tblnote">Web3 and CI/CD have small payload counts because their real attack surface is a finite set of RPC methods / exploit endpoints (Sec. V-A), and were below the judge-sampling threshold; their high uniqueness still holds. Per-service realism samples are small and are reported to show the direction and magnitude of the disparity, not as precise point estimates.</figcaption>
+</figure>
+
+<!-- ============ TABLE: honeypot taxonomy, published numbers vs ours ============ -->
+<figure id="tab-quant">
+<table class="tbl">
+  <caption><strong>Table III.</strong> Honeypot taxonomy and quantitative comparison, using each system's own published figures. Numbers are reproduced exactly as reported by their sources; systems were measured under different conditions, metrics, models, and hardware, so this is a like-for-like reading of comparable quantities (latency, deception accuracy where a comparable rubric exists, protocol coverage, and log integrity), not a single controlled head-to-head. A real (non-honeypot) system is included as an upper bound where a source reports one.</caption>
+  <thead>
+    <tr><th>System</th><th>Class</th><th>Surfaces</th><th>Deception accuracy (as reported)</th><th>Latency (as reported)</th><th>Fingerprint / detectability</th><th>Log integrity</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Cowrie / Kippo</td><td>Low/medium-interaction, static</td><td>1 (SSH/Telnet)</td><td>~81% (Cowrie, per HoneyGPT)</td><td>~0.14 s/cmd</td><td>Fingerprinted in 1 packet, EER 0.0183</td><td>None</td></tr>
+    <tr><td>Dionaea</td><td>Low-interaction, multi-protocol</td><td>Several (SMB/HTTP/FTP&hellip;)</td><td>Not reported (malware capture)</td><td>&mdash;</td><td>Enumerable (static)</td><td>None</td></tr>
+    <tr><td>High-interaction (real OS)</td><td>High-interaction</td><td>Full host</td><td>~98% (real-system upper bound)</td><td>Native</td><td>Low, but high risk/cost</td><td>Host-dependent</td></tr>
+    <tr><td>McKee &amp; Noever</td><td>LLM-generative</td><td>1 (shell)</td><td>Feasibility (10 tasks)</td><td>Not reported</td><td>&mdash;</td><td>None</td></tr>
+    <tr><td>ShelLM (Sladić et al.)</td><td>LLM-generative</td><td>1 (SSH)</td><td>0.92 acc / 0.90 TNR (12 humans)</td><td>Not reported/cmd</td><td>&mdash;</td><td>None</td></tr>
+    <tr><td>HoneyLLM</td><td>LLM-generative</td><td>1 (SSH)</td><td>Not a single score</td><td>1.88 s/cmd</td><td>&mdash;</td><td>None</td></tr>
+    <tr><td>HoneyGPT</td><td>LLM-generative</td><td>1 (terminal)</td><td>93% (GPT-3.5) / 96% (GPT-4)</td><td>Not reported/cmd</td><td>&mdash;</td><td>None</td></tr>
+    <tr><td>Blockchain audit-log systems</td><td>Secure logging (not a decoy)</td><td>n/a</td><td>n/a</td><td>n/a</td><td>n/a</td><td>Tamper-evident</td></tr>
+    <tr><td><strong>This work</strong></td><td><strong>LLM-generative + tiered + anchored</strong></td><td><strong>5</strong></td><td><strong>LM-judge 4.37/5; diversity 0.64&ndash;0.99</strong></td><td><strong>0.8 ms static / 2.33 s dynamic</strong></td><td><strong>Diversity 0.64&ndash;0.99 (hard to fingerprint by output)</strong></td><td><strong>Tamper-evident (on-chain)</strong></td></tr>
+  </tbody>
+</table>
+<figcaption class="tblnote">Sources: Cowrie ~81% and HoneyGPT 93–96% deception accuracy and the ~98% real-system upper bound are from the HoneyGPT evaluation (160 sessions, 1,489 commands); the 1-packet fingerprint / EER 0.0183 is from Vetterl &amp; Clayton (2,844 real Cowrie/Kippo instances); ShelLM 0.92/0.90 is a 12-participant human study (226 commands); HoneyLLM's 1.88 s/cmd is against a 0.138 s Cowrie baseline. Accuracy figures across LLM systems use different rubrics and are not strictly identical; we report them side by side, not as one scale. Our accuracy-column entry is an automated LM-judge score, a weaker proxy than a human study (see §4.3). No prior single system combines multi-protocol coverage, generative responses, and tamper-evident logging — the last column is the axis on which every deception system above scores "None".</figcaption>
+</figure>
+
+<!-- ============ TABLE: cross-system comparison ============ -->
+<figure id="tab-compare">
+<table class="tbl">
+  <caption><strong>Table I.</strong> Property comparison with prior categories of work. Compared on structural properties, not head-to-head measurements on a common testbed; we did not re-run the other systems.</caption>
+  <thead>
+    <tr>
+      <th>Property</th>
+      <th>Classical static honeypot</th>
+      <th>Single-protocol LM honeypot</th>
+      <th>Blockchain secure-logging</th>
+      <th>This work</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Response generation</td><td>Fixed table</td><td>Generative (LM)</td><td>n/a (not a decoy)</td><td>Generative (LM) + tiered fast-path</td></tr>
+    <tr><td>Protocols / surfaces</td><td>Typically one</td><td>Typically one</td><td>n/a</td><td>Five (SSH, SQL, AI API, RPC, CI/CD)</td></tr>
+    <tr><td>Fingerprint resistance</td><td>Low (enumerable)</td><td>High on its surface</td><td>n/a</td><td>High on four of five surfaces</td></tr>
+    <tr><td>Novel-input handling</td><td>None</td><td>Yes</td><td>n/a</td><td>Yes</td></tr>
+    <tr><td>Log integrity guarantee</td><td>Host-dependent</td><td>Usually host-dependent</td><td>Tamper-evident</td><td>Tamper-evident (on-chain digest)</td></tr>
+    <tr><td>Per-request latency</td><td>Microseconds</td><td>Seconds (LM)</td><td>n/a</td><td>Sub-ms routine / seconds novel</td></tr>
+    <tr><td>Realism evaluation</td><td>Rarely reported</td><td>Varies</td><td>n/a</td><td>Diversity + LM-judge, reported per service</td></tr>
+    <tr><td>Reports negative results</td><td>&mdash;</td><td>Varies</td><td>&mdash;</td><td>Yes (API decoy failure, harness bug)</td></tr>
+  </tbody>
+</table>
+</figure>
+
+<!-- ============ TABLE: decoy-layer connection pooling ============ -->
+<figure id="tab-pool">
+<table class="tbl">
+  <caption><strong>Table II.</strong> Measured effect of the connection-pooling fix at the decoy layer (§6.1). Before/after are real runs of the same code on deterministic payloads, isolating the decoy layer from language-model latency. &sigma; is the standard deviation across trials.</caption>
+  <thead>
+    <tr><th>Decoy</th><th>Endpoint</th><th>Before (mean)</th><th>After (mean)</th><th>Change</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>AI API</td><td><span class="mono">GET /api/models</span></td><td>6.15 ms (&sigma;=3.89)</td><td>4.28 ms (&sigma;=0.70)</td><td>&minus;30.4%</td></tr>
+    <tr><td>PostgreSQL</td><td><span class="mono">GET /health</span></td><td>0.69 ms (&sigma;=1.94)</td><td>0.41 ms (&sigma;=0.44)</td><td>&minus;41.4%</td></tr>
+    <tr><td>Ethereum RPC</td><td><span class="mono">POST / (eth_accounts)</span></td><td>5.96 ms (&sigma;=2.43)</td><td>4.20 ms (&sigma;=0.75)</td><td>&minus;29.5%</td></tr>
+    <tr><td>Jenkins CI/CD</td><td><span class="mono">GET /api/json</span></td><td>6.95 ms (&sigma;=3.13)</td><td>6.71 ms (&sigma;=3.02)</td><td>&minus;3.4%*</td></tr>
+    <tr><td>SSH shell</td><td><span class="mono">whoami</span> (fast-path)</td><td>7.91 ms (&sigma;=9.94)</td><td>4.64 ms (&sigma;=6.55)</td><td>&minus;41.3%</td></tr>
+  </tbody>
+</table>
+<figcaption class="tblnote">*The Jenkins <span class="mono">/api/json</span> endpoint routes through the response engine regardless of decoy-layer pooling, so its latency floor is set by the engine-side cache lookup, not the decoy's own connection handling. Across the other four decoys the fix reduces both mean latency and, notably, its variance.</figcaption>
+</figure>

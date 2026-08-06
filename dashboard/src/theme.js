@@ -36,6 +36,7 @@ export const INTENT_COLOR = {
   prompt_injection:     SERIES.violet,
   supply_chain:         SERIES.blue,
   reconnaissance:       SERIES.aqua,
+  crypto_theft:         SERIES.green,
   unknown:              COLORS.inkMuted,
 };
 

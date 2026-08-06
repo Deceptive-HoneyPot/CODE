@@ -8,6 +8,7 @@ const LABELS = {
   prompt_injection:     "Prompt injection",
   supply_chain:         "Supply chain",
   reconnaissance:       "Reconnaissance",
+  crypto_theft:         "Crypto theft",
   unknown:              "Unclassified",
 };
 

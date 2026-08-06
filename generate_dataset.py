@@ -258,10 +258,16 @@ def sample(payloads: list[str], n: int) -> list[str]:
 # source below (a finite set of documented RPC methods / Jenkins
 # endpoints) - going larger there would mean fabricating payloads, which
 # defeats the point of using real data.
+# Scaled to a ~2,500-payload all-real corpus with zero padding: the small
+# services contribute every unique real payload they have (sql 474, api 136,
+# web3 18, cicd 10), and the balance to 2,500 is drawn from the large SSH /
+# command-injection corpus (8,956 unique real payloads available). Every
+# target here is <= the count of genuine unique payloads for that service, so
+# sample() never has to repeat an entry — nothing is fabricated or padded.
 PER_SERVICE_TARGET = {
-    "ssh": 500,
-    "sql": 500,
-    "api": 300,
+    "ssh": 1862,
+    "sql": 474,
+    "api": 136,
     "web3": len(WEB3_RPC_METHODS),
     "cicd": len(CICD_REAL_TECHNIQUES),
 }

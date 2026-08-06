@@ -47,20 +47,94 @@ def anchor_blockchain(log_hash: str):
 
 def classify_intent(raw) -> str:
     d = str(raw).lower()
-    if any(x in d for x in ["select ", "' or", "union ", "drop table", "1=1", "insert into"]):
+
+    # SQL injection — expanded to catch the compact sqlmap-style payloads
+    # (admin'--, ' or '1'='1, stacked queries, error-based extractvalue, etc.)
+    if any(x in d for x in [
+        "select ", "' or", "\" or", "union select", "union all", "drop table",
+        "1=1", "'1'='1", "insert into", "'--", "';--", "; drop", "or 1 --",
+        "extractvalue", "updatexml", "information_schema", "sleep(", "benchmark(",
+        "waitfor delay", "load_file", "into outfile", "xp_cmdshell",
+    ]):
         return "sql_injection"
-    if any(x in d for x in ["sudo", "/etc/shadow", "chmod 777", "passwd", "privilege"]):
-        return "privilege_escalation"
-    if any(x in d for x in ["wget ", "curl ", "nc ", "bash -i", "python -c", "/bin/sh"]):
-        return "reverse_shell"
-    if any(x in d for x in ["xmrig", "miner", "monero", "cryptonight", "stratum"]):
-        return "cryptomining"
-    if any(x in d for x in ["ignore previous", "jailbreak", "pretend you", "you are now", "act as"]):
+
+    # Prompt injection / LLM jailbreak — checked before privilege/recon so an
+    # AI-decoy jailbreak isn't misfiled on an incidental keyword.
+    if any(x in d for x in [
+        "ignore previous", "ignore all previous", "jailbreak", "pretend you",
+        "you are now", "act as", "developer mode", "dan mode", "system:",
+        "new directive", "override", "reveal your", "system prompt",
+        "unrestricted ai", "forget you are", "disregard",
+    ]):
         return "prompt_injection"
-    if any(x in d for x in ["git push", "pipeline", "jenkins", "build trigger", "webhook"]):
+
+    # Crypto theft — abusive Ethereum JSON-RPC methods documented in real
+    # "exposed node" incidents: draining, unlocking wallets, signing,
+    # planting malicious peers, forcing mining to an attacker address.
+    if any(x in d for x in [
+        "personal_unlockaccount", "personal_sendtransaction", "eth_sendtransaction",
+        "eth_sendrawtransaction", "eth_sign", "admin_addpeer", "admin_startrpc",
+        "miner_start", "miner_setetherbase", "txpool_content", "eth_getbalance",
+        "eth_accounts", "eth_getstorageat",
+    ]):
+        return "crypto_theft"
+
+    # Cryptomining payloads (miner binaries / pools) — before reverse_shell so a
+    # "wget xmrig" reads as mining rather than a generic download.
+    if any(x in d for x in [
+        "xmrig", "miner", "monero", "cryptonight", "stratum", "minerd",
+        "coinhive", "/tmp/kworker", "kdevtmpfsi", "kinsing",
+    ]):
+        return "cryptomining"
+
+    # Reverse shell / remote code execution / malware staging
+    if any(x in d for x in [
+        "wget ", "curl ", "nc ", "ncat", "bash -i", "sh -i", "python -c",
+        "python3 -c", "/bin/sh", "/bin/bash", "socket.socket", "pty.spawn",
+        "/dev/tcp/", "mkfifo", "|bash", "| bash", "|sh", "| sh", "powershell",
+        "certutil", "base64 -d", "${jndi", "runtime.getruntime",
+    ]):
+        return "reverse_shell"
+
+    # Privilege escalation / credential & secret access
+    if any(x in d for x in [
+        "sudo", "/etc/shadow", "/etc/passwd", "chmod 777", "chmod +s", "passwd",
+        "privilege", "setuid", "id -a", "cat /etc/", "master.key", "id_rsa",
+        ".ssh/", "secrets/", "/root/",
+    ]):
+        return "privilege_escalation"
+
+    # Supply-chain / CI-CD abuse (Jenkins script console, job/pipeline abuse,
+    # malicious webhook triggers, plugin injection)
+    if any(x in d for x in [
+        "git push", "pipeline", "jenkins", "build trigger", "webhook",
+        "notifycommit", "/script", "scripttext", "malicious-repo", "installnecessaryplugins",
+        ".hpi", "config.xml", "groovy", "job/build",
+    ]):
         return "supply_chain"
-    if any(x in d for x in ["nmap", "masscan", "scan", "ping sweep", "port scan"]):
+
+    # SSH/DB brute-force and password-spray login attempts (the honeypot logs
+    # each try as "LOGIN:user:pass") — grouped under credential/privilege abuse.
+    if d.startswith("login:") or "brute" in d or "password spray" in d:
+        return "privilege_escalation"
+
+    # Reconnaissance / enumeration — active scanning tools, the proxy's own
+    # "new connection" probe logs, Jenkins/API info requests, and the classic
+    # SSH enumeration commands attackers run first on a fresh shell.
+    if any(x in d for x in [
+        "nmap", "masscan", "scan", "ping sweep", "port scan", "new connection",
+        "info_request", "list_models", "/api/json", "/api/models", "whoami",
+        "uname", "hostname", "ifconfig", "ip a", "netstat", "ps aux", "arp",
+        "history", "lsb_release", "net_version", "web3_clientversion",
+        "net_peercount", "eth_blocknumber", "cat /", "ls -", "ls /",
+    ]):
         return "reconnaissance"
+
+    # Bare single-word enumeration commands — matched as the whole payload so a
+    # substring like "id" inside a larger string can't trigger a false positive.
+    if d.strip() in {"id", "pwd", "env", "ls", "w", "who", "date", "uptime", "free", "df"}:
+        return "reconnaissance"
+
     return "unknown"
 
 @app.post("/api/log")
@@ -72,9 +146,13 @@ async def receive_log(data: dict):
     data["hash"] = log_hash
     data["blockchain_anchored"] = anchored
 
-    # Save to Redis (keep last 10,000)
+    # Save to Redis (keep last 10,000 for the rolling window / feed)
     r.lpush("honeypot:logs", json.dumps(data))
     r.ltrim("honeypot:logs", 0, 9999)
+    # Lifetime counter — monotonic, never trimmed. Unlike len(logs) below
+    # (capped at the 1,000-event stats window) this keeps climbing so the
+    # dashboard shows the true total of everything ever intercepted.
+    r.incr("honeypot:lifetime_total")
 
     # Broadcast to dashboard
     dead = []
@@ -124,8 +202,10 @@ def get_stats():
         ip_counts[ip] = ip_counts.get(ip, 0) + 1
         port_counts[port] = port_counts.get(port, 0) + 1
         hourly[hour] = hourly.get(hour, 0) + 1
+    lifetime = r.get("honeypot:lifetime_total")
     return {
         "total": len(logs),
+        "lifetime_total": int(lifetime) if lifetime else len(logs),
         "by_intent": intent_counts,
         "top_ips": sorted(ip_counts.items(), key=lambda x: x[1], reverse=True)[:10],
         "by_port": port_counts,

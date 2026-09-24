@@ -1,0 +1,1213 @@
+{
+  "meta": {
+    "generated": "2026-09-18T19:45:40",
+    "ganache_client": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
+    "chain_id": 1337,
+    "accounts": 24,
+    "blocks_produced": 13810,
+    "total_runtime_s": 182.7,
+    "reps": 5,
+    "n_sweep": [
+      1,
+      2,
+      4,
+      8,
+      16
+    ],
+    "events_per_node_sweep": 40,
+    "rpc_floor_ms": {
+      "n": 200,
+      "mean": 1.5543,
+      "median": 1.5217,
+      "p95": 2.1019,
+      "p99": 2.9556,
+      "min": 0.8986,
+      "max": 8.4452,
+      "stdev": 0.6055,
+      "ci95": 0.0839
+    }
+  },
+  "e1_scaling": [
+    {
+      "N": 1,
+      "events_per_node": 40,
+      "reps": 5,
+      "attempted": 200,
+      "ok": 200,
+      "throughput_mean": 119.23,
+      "throughput_ci95": 7.992,
+      "throughput_per_rep": [
+        104.21,
+        122.21,
+        128.97,
+        120.86,
+        119.93
+      ],
+      "latency_ms": {
+        "n": 200,
+        "mean": 8.4123,
+        "median": 8.1151,
+        "p95": 9.8331,
+        "p99": 11.7628,
+        "min": 6.5401,
+        "max": 52.1745,
+        "stdev": 3.2768,
+        "ci95": 0.4541
+      },
+      "latency_mean_per_rep": [
+        9.579,
+        8.165,
+        7.739,
+        8.257,
+        8.321
+      ]
+    },
+    {
+      "N": 2,
+      "events_per_node": 40,
+      "reps": 5,
+      "attempted": 400,
+      "ok": 400,
+      "throughput_mean": 209.5,
+      "throughput_ci95": 4.938,
+      "throughput_per_rep": [
+        214.47,
+        206.44,
+        201.23,
+        214.17,
+        211.18
+      ],
+      "latency_ms": {
+        "n": 400,
+        "mean": 9.4851,
+        "median": 9.3828,
+        "p95": 11.0051,
+        "p99": 12.236,
+        "min": 6.7658,
+        "max": 15.3915,
+        "stdev": 1.0618,
+        "ci95": 0.1041
+      },
+      "latency_mean_per_rep": [
+        9.24,
+        9.642,
+        9.85,
+        9.261,
+        9.432
+      ]
+    },
+    {
+      "N": 4,
+      "events_per_node": 40,
+      "reps": 5,
+      "attempted": 800,
+      "ok": 800,
+      "throughput_mean": 236.42,
+      "throughput_ci95": 5.2741,
+      "throughput_per_rep": [
+        241.36,
+        235.79,
+        240.08,
+        226.32,
+        238.56
+      ],
+      "latency_ms": {
+        "n": 800,
+        "mean": 13.6402,
+        "median": 11.0312,
+        "p95": 24.9081,
+        "p99": 60.0215,
+        "min": 6.2817,
+        "max": 133.0642,
+        "stdev": 9.8992,
+        "ci95": 0.686
+      },
+      "latency_mean_per_rep": [
+        13.48,
+        13.677,
+        13.515,
+        14.083,
+        13.445
+      ]
+    },
+    {
+      "N": 8,
+      "events_per_node": 40,
+      "reps": 5,
+      "attempted": 1600,
+      "ok": 1600,
+      "throughput_mean": 253.37,
+      "throughput_ci95": 4.9126,
+      "throughput_per_rep": [
+        257.77,
+        250.41,
+        251.91,
+        260.29,
+        246.48
+      ],
+      "latency_ms": {
+        "n": 1600,
+        "mean": 21.3745,
+        "median": 11.1889,
+        "p95": 33.6351,
+        "p99": 509.944,
+        "min": 6.3804,
+        "max": 849.7135,
+        "stdev": 66.0262,
+        "ci95": 3.2353
+      },
+      "latency_mean_per_rep": [
+        21.472,
+        21.282,
+        21.188,
+        21.422,
+        21.51
+      ]
+    },
+    {
+      "N": 16,
+      "events_per_node": 40,
+      "reps": 5,
+      "attempted": 3200,
+      "ok": 3200,
+      "throughput_mean": 255.0,
+      "throughput_ci95": 2.8552,
+      "throughput_per_rep": [
+        253.45,
+        260.52,
+        252.95,
+        252.72,
+        255.38
+      ],
+      "latency_ms": {
+        "n": 3200,
+        "mean": 38.1864,
+        "median": 11.7387,
+        "p95": 45.0274,
+        "p99": 1117.6287,
+        "min": 6.7827,
+        "max": 2125.2245,
+        "stdev": 178.4044,
+        "ci95": 6.1814
+      },
+      "latency_mean_per_rep": [
+        37.83,
+        37.782,
+        38.49,
+        38.757,
+        38.073
+      ]
+    }
+  ],
+  "e2_gas": {
+    "encoding": {
+      "ascii": {
+        "bytes": 70,
+        "gas_measured": {
+          "n": 50,
+          "mean": 22120,
+          "median": 22120.0,
+          "p95": 22120,
+          "p99": 22120,
+          "min": 22120,
+          "max": 22120,
+          "stdev": 0.0,
+          "ci95": 0.0
+        },
+        "gas_model": {
+          "n": 50,
+          "mean": 22120,
+          "median": 22120.0,
+          "p95": 22120,
+          "p99": 22120,
+          "min": 22120,
+          "max": 22120,
+          "stdev": 0.0,
+          "ci95": 0.0
+        },
+        "latency_ms": {
+          "n": 50,
+          "mean": 7.6192,
+          "median": 7.4873,
+          "p95": 9.0555,
+          "p99": 9.8783,
+          "min": 5.9675,
+          "max": 9.8783,
+          "stdev": 0.9123,
+          "ci95": 0.2529
+        },
+        "model_error_pct": 0.0
+      },
+      "binary": {
+        "bytes": 35,
+        "gas_measured": {
+          "n": 50,
+          "mean": 21545.12,
+          "median": 21548.0,
+          "p95": 21548,
+          "p99": 21548,
+          "min": 21536,
+          "max": 21548,
+          "stdev": 5.177,
+          "ci95": 1.435
+        },
+        "gas_model": {
+          "n": 50,
+          "mean": 21545.12,
+          "median": 21548.0,
+          "p95": 21548,
+          "p99": 21548,
+          "min": 21536,
+          "max": 21548,
+          "stdev": 5.177,
+          "ci95": 1.435
+        },
+        "latency_ms": {
+          "n": 50,
+          "mean": 8.1126,
+          "median": 8.1783,
+          "p95": 9.1734,
+          "p99": 9.5367,
+          "min": 6.8727,
+          "max": 9.5367,
+          "stdev": 0.6734,
+          "ci95": 0.1867
+        },
+        "model_error_pct": 0.0
+      }
+    },
+    "batching": [
+      {
+        "B": 1,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21552.4,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21544,
+          "max": 21556,
+          "stdev": 5.7966,
+          "ci95": 3.5927
+        },
+        "gas_per_ioc": 21552.4,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 8.7204,
+          "median": 8.338,
+          "p95": 12.2236,
+          "p99": 12.2236,
+          "min": 6.7742,
+          "max": 12.2236,
+          "stdev": 1.5895,
+          "ci95": 0.9852
+        },
+        "latency_per_ioc_ms": 8.7204,
+        "proof_hashes": 0,
+        "proof_bytes": 0,
+        "proofs_verified": 10,
+        "proofs_total": 10
+      },
+      {
+        "B": 2,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21554.8,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21544,
+          "max": 21556,
+          "stdev": 3.7947,
+          "ci95": 2.352
+        },
+        "gas_per_ioc": 10777.4,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 8.1085,
+          "median": 8.2936,
+          "p95": 8.7198,
+          "p99": 8.7198,
+          "min": 7.0767,
+          "max": 8.7198,
+          "stdev": 0.5218,
+          "ci95": 0.3234
+        },
+        "latency_per_ioc_ms": 4.0542,
+        "proof_hashes": 1,
+        "proof_bytes": 32,
+        "proofs_verified": 20,
+        "proofs_total": 20
+      },
+      {
+        "B": 4,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21552.4,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21544,
+          "max": 21556,
+          "stdev": 5.7966,
+          "ci95": 3.5927
+        },
+        "gas_per_ioc": 5388.1,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 8.3262,
+          "median": 8.2769,
+          "p95": 9.8952,
+          "p99": 9.8952,
+          "min": 6.9964,
+          "max": 9.8952,
+          "stdev": 0.9919,
+          "ci95": 0.6148
+        },
+        "latency_per_ioc_ms": 2.0816,
+        "proof_hashes": 2,
+        "proof_bytes": 64,
+        "proofs_verified": 40,
+        "proofs_total": 40
+      },
+      {
+        "B": 8,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21553.6,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21544,
+          "max": 21556,
+          "stdev": 5.0596,
+          "ci95": 3.136
+        },
+        "gas_per_ioc": 2694.2,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 8.3796,
+          "median": 8.2574,
+          "p95": 9.9532,
+          "p99": 9.9532,
+          "min": 7.0827,
+          "max": 9.9532,
+          "stdev": 0.8473,
+          "ci95": 0.5252
+        },
+        "latency_per_ioc_ms": 1.0474,
+        "proof_hashes": 3,
+        "proof_bytes": 96,
+        "proofs_verified": 80,
+        "proofs_total": 80
+      },
+      {
+        "B": 16,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21556,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21556,
+          "max": 21556,
+          "stdev": 0.0,
+          "ci95": 0.0
+        },
+        "gas_per_ioc": 1347.2,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 8.8998,
+          "median": 8.4932,
+          "p95": 11.1272,
+          "p99": 11.1272,
+          "min": 7.6038,
+          "max": 11.1272,
+          "stdev": 1.1938,
+          "ci95": 0.7399
+        },
+        "latency_per_ioc_ms": 0.5562,
+        "proof_hashes": 4,
+        "proof_bytes": 128,
+        "proofs_verified": 160,
+        "proofs_total": 160
+      },
+      {
+        "B": 32,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21556,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21556,
+          "max": 21556,
+          "stdev": 0.0,
+          "ci95": 0.0
+        },
+        "gas_per_ioc": 673.6,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 8.3407,
+          "median": 8.1439,
+          "p95": 9.701,
+          "p99": 9.701,
+          "min": 7.2648,
+          "max": 9.701,
+          "stdev": 0.7023,
+          "ci95": 0.4353
+        },
+        "latency_per_ioc_ms": 0.2606,
+        "proof_hashes": 5,
+        "proof_bytes": 160,
+        "proofs_verified": 320,
+        "proofs_total": 320
+      },
+      {
+        "B": 64,
+        "trials": 10,
+        "tx_bytes": 37,
+        "gas_per_tx": {
+          "n": 10,
+          "mean": 21553.6,
+          "median": 21556.0,
+          "p95": 21556,
+          "p99": 21556,
+          "min": 21544,
+          "max": 21556,
+          "stdev": 5.0596,
+          "ci95": 3.136
+        },
+        "gas_per_ioc": 336.8,
+        "latency_per_tx_ms": {
+          "n": 10,
+          "mean": 7.9343,
+          "median": 8.0585,
+          "p95": 8.8587,
+          "p99": 8.8587,
+          "min": 6.8863,
+          "max": 8.8587,
+          "stdev": 0.5183,
+          "ci95": 0.3212
+        },
+        "latency_per_ioc_ms": 0.124,
+        "proof_hashes": 6,
+        "proof_bytes": 192,
+        "proofs_verified": 640,
+        "proofs_total": 640
+      }
+    ]
+  },
+  "e3_bootstrap": {
+    "rows": [
+      {
+        "H": 250,
+        "seconds_mean": 0.7148,
+        "seconds_ci95": 0.0915,
+        "ms_per_block": 2.8592,
+        "transactions_scanned": 250,
+        "records_recovered": 250
+      },
+      {
+        "H": 500,
+        "seconds_mean": 1.6006,
+        "seconds_ci95": 0.0105,
+        "ms_per_block": 3.2012,
+        "transactions_scanned": 500,
+        "records_recovered": 500
+      },
+      {
+        "H": 1000,
+        "seconds_mean": 2.5947,
+        "seconds_ci95": 0.8494,
+        "ms_per_block": 2.5947,
+        "transactions_scanned": 1000,
+        "records_recovered": 540
+      },
+      {
+        "H": 2000,
+        "seconds_mean": 6.0321,
+        "seconds_ci95": 0.2498,
+        "ms_per_block": 3.0161,
+        "transactions_scanned": 2000,
+        "records_recovered": 1031
+      },
+      {
+        "H": 4000,
+        "seconds_mean": 11.9521,
+        "seconds_ci95": 0.4482,
+        "ms_per_block": 2.988,
+        "transactions_scanned": 4000,
+        "records_recovered": 2081
+      }
+    ],
+    "fit": {
+      "ms_per_block": 3.0065,
+      "intercept_ms": -81.16,
+      "r2": 0.99818
+    }
+  },
+  "e4_accuracy": {
+    "summary": {
+      "exact": {
+        "precision": 1.0,
+        "recall": 0.275,
+        "f1": 0.424,
+        "precision_ci95": 0.0,
+        "recall_ci95": 0.0831,
+        "f1_ci95": 0.1087,
+        "tp": 22,
+        "fp": 0,
+        "fn": 58
+      },
+      "payload": {
+        "precision": 0.5644,
+        "recall": 0.6625,
+        "f1": 0.6073,
+        "precision_ci95": 0.0445,
+        "recall_ci95": 0.1375,
+        "f1_ci95": 0.0815,
+        "tp": 53,
+        "fp": 40,
+        "fn": 27
+      },
+      "template": {
+        "precision": 0.1542,
+        "recall": 0.15,
+        "f1": 0.152,
+        "precision_ci95": 0.0601,
+        "recall_ci95": 0.0625,
+        "f1_ci95": 0.0613,
+        "tp": 12,
+        "fp": 65,
+        "fn": 68
+      },
+      "net24+template": {
+        "precision": 1.0,
+        "recall": 0.8125,
+        "f1": 0.8902,
+        "precision_ci95": 0.0,
+        "recall_ci95": 0.1285,
+        "f1_ci95": 0.0863,
+        "tp": 65,
+        "fp": 0,
+        "fn": 15
+      }
+    },
+    "per_rep": {
+      "exact": [
+        {
+          "rep": 0,
+          "tp": 5,
+          "fp": 0,
+          "fn": 11,
+          "precision": 1.0,
+          "recall": 0.3125,
+          "f1": 0.47619047619047616,
+          "anchored": 300,
+          "distinct_keys": 285,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 1,
+            "ip": 3,
+            "token+ip": 1,
+            "net": 7
+          }
+        },
+        {
+          "rep": 1,
+          "tp": 2,
+          "fp": 0,
+          "fn": 14,
+          "precision": 1.0,
+          "recall": 0.125,
+          "f1": 0.2222222222222222,
+          "anchored": 300,
+          "distinct_keys": 294,
+          "mode_mix": {
+            "fixed": 2,
+            "token": 2,
+            "ip": 4,
+            "token+ip": 5,
+            "net": 3
+          }
+        },
+        {
+          "rep": 2,
+          "tp": 4,
+          "fp": 0,
+          "fn": 12,
+          "precision": 1.0,
+          "recall": 0.25,
+          "f1": 0.4,
+          "anchored": 300,
+          "distinct_keys": 287,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 4,
+            "ip": 3,
+            "token+ip": 3,
+            "net": 2
+          }
+        },
+        {
+          "rep": 3,
+          "tp": 6,
+          "fp": 0,
+          "fn": 10,
+          "precision": 1.0,
+          "recall": 0.375,
+          "f1": 0.5454545454545454,
+          "anchored": 300,
+          "distinct_keys": 285,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 3,
+            "net": 1
+          }
+        },
+        {
+          "rep": 4,
+          "tp": 5,
+          "fp": 0,
+          "fn": 11,
+          "precision": 1.0,
+          "recall": 0.3125,
+          "f1": 0.47619047619047616,
+          "anchored": 300,
+          "distinct_keys": 289,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 2,
+            "net": 2
+          }
+        }
+      ],
+      "payload": [
+        {
+          "rep": 0,
+          "tp": 15,
+          "fp": 8,
+          "fn": 1,
+          "precision": 0.6521739130434783,
+          "recall": 0.9375,
+          "f1": 0.7692307692307693,
+          "anchored": 300,
+          "distinct_keys": 26,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 1,
+            "ip": 3,
+            "token+ip": 1,
+            "net": 7
+          }
+        },
+        {
+          "rep": 1,
+          "tp": 10,
+          "fp": 8,
+          "fn": 6,
+          "precision": 0.5555555555555556,
+          "recall": 0.625,
+          "f1": 0.5882352941176471,
+          "anchored": 300,
+          "distinct_keys": 38,
+          "mode_mix": {
+            "fixed": 2,
+            "token": 2,
+            "ip": 4,
+            "token+ip": 5,
+            "net": 3
+          }
+        },
+        {
+          "rep": 2,
+          "tp": 9,
+          "fp": 8,
+          "fn": 7,
+          "precision": 0.5294117647058824,
+          "recall": 0.5625,
+          "f1": 0.5454545454545455,
+          "anchored": 300,
+          "distinct_keys": 46,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 4,
+            "ip": 3,
+            "token+ip": 3,
+            "net": 2
+          }
+        },
+        {
+          "rep": 3,
+          "tp": 10,
+          "fp": 8,
+          "fn": 6,
+          "precision": 0.5555555555555556,
+          "recall": 0.625,
+          "f1": 0.5882352941176471,
+          "anchored": 300,
+          "distinct_keys": 37,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 3,
+            "net": 1
+          }
+        },
+        {
+          "rep": 4,
+          "tp": 9,
+          "fp": 8,
+          "fn": 7,
+          "precision": 0.5294117647058824,
+          "recall": 0.5625,
+          "f1": 0.5454545454545455,
+          "anchored": 300,
+          "distinct_keys": 43,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 2,
+            "net": 2
+          }
+        }
+      ],
+      "template": [
+        {
+          "rep": 0,
+          "tp": 2,
+          "fp": 13,
+          "fn": 14,
+          "precision": 0.13333333333333333,
+          "recall": 0.125,
+          "f1": 0.12903225806451615,
+          "anchored": 300,
+          "distinct_keys": 15,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 1,
+            "ip": 3,
+            "token+ip": 1,
+            "net": 7
+          }
+        },
+        {
+          "rep": 1,
+          "tp": 3,
+          "fp": 13,
+          "fn": 13,
+          "precision": 0.1875,
+          "recall": 0.1875,
+          "f1": 0.1875,
+          "anchored": 300,
+          "distinct_keys": 16,
+          "mode_mix": {
+            "fixed": 2,
+            "token": 2,
+            "ip": 4,
+            "token+ip": 5,
+            "net": 3
+          }
+        },
+        {
+          "rep": 2,
+          "tp": 2,
+          "fp": 13,
+          "fn": 14,
+          "precision": 0.13333333333333333,
+          "recall": 0.125,
+          "f1": 0.12903225806451615,
+          "anchored": 300,
+          "distinct_keys": 15,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 4,
+            "ip": 3,
+            "token+ip": 3,
+            "net": 2
+          }
+        },
+        {
+          "rep": 3,
+          "tp": 1,
+          "fp": 14,
+          "fn": 15,
+          "precision": 0.06666666666666667,
+          "recall": 0.0625,
+          "f1": 0.06451612903225808,
+          "anchored": 300,
+          "distinct_keys": 15,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 3,
+            "net": 1
+          }
+        },
+        {
+          "rep": 4,
+          "tp": 4,
+          "fp": 12,
+          "fn": 12,
+          "precision": 0.25,
+          "recall": 0.25,
+          "f1": 0.25,
+          "anchored": 300,
+          "distinct_keys": 16,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 2,
+            "net": 2
+          }
+        }
+      ],
+      "net24+template": [
+        {
+          "rep": 0,
+          "tp": 9,
+          "fp": 0,
+          "fn": 7,
+          "precision": 1.0,
+          "recall": 0.5625,
+          "f1": 0.72,
+          "anchored": 300,
+          "distinct_keys": 277,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 1,
+            "ip": 3,
+            "token+ip": 1,
+            "net": 7
+          }
+        },
+        {
+          "rep": 1,
+          "tp": 13,
+          "fp": 0,
+          "fn": 3,
+          "precision": 1.0,
+          "recall": 0.8125,
+          "f1": 0.896551724137931,
+          "anchored": 300,
+          "distinct_keys": 269,
+          "mode_mix": {
+            "fixed": 2,
+            "token": 2,
+            "ip": 4,
+            "token+ip": 5,
+            "net": 3
+          }
+        },
+        {
+          "rep": 2,
+          "tp": 14,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.875,
+          "f1": 0.9333333333333333,
+          "anchored": 300,
+          "distinct_keys": 259,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 4,
+            "ip": 3,
+            "token+ip": 3,
+            "net": 2
+          }
+        },
+        {
+          "rep": 3,
+          "tp": 15,
+          "fp": 0,
+          "fn": 1,
+          "precision": 1.0,
+          "recall": 0.9375,
+          "f1": 0.967741935483871,
+          "anchored": 300,
+          "distinct_keys": 263,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 3,
+            "net": 1
+          }
+        },
+        {
+          "rep": 4,
+          "tp": 14,
+          "fp": 0,
+          "fn": 2,
+          "precision": 1.0,
+          "recall": 0.875,
+          "f1": 0.9333333333333333,
+          "anchored": 300,
+          "distinct_keys": 265,
+          "mode_mix": {
+            "fixed": 4,
+            "token": 6,
+            "ip": 2,
+            "token+ip": 2,
+            "net": 2
+          }
+        }
+      ]
+    },
+    "campaigns": 16,
+    "nodes": 5,
+    "iocs_per_node": 60,
+    "reps": 5
+  },
+  "e5_adversary": {
+    "sybil": [
+      {
+        "identities": 1,
+        "fabricated": 30,
+        "corroborated_k2": 0,
+        "corroborated_k3": 0,
+        "corroborated_k4": 0
+      },
+      {
+        "identities": 2,
+        "fabricated": 30,
+        "corroborated_k2": 30,
+        "corroborated_k3": 0,
+        "corroborated_k4": 0
+      },
+      {
+        "identities": 3,
+        "fabricated": 30,
+        "corroborated_k2": 30,
+        "corroborated_k3": 30,
+        "corroborated_k4": 0
+      }
+    ],
+    "echo_plain": {
+      "honest_single_node_digests": 120,
+      "falsely_corroborated": 120,
+      "false_corroboration_rate": 1.0,
+      "echo_cost_s": 1.045
+    },
+    "echo_commit_reveal": {
+      "honest_single_node_digests": 90,
+      "falsely_corroborated": 0,
+      "false_corroboration_rate": 0.0,
+      "shared_digests": 20,
+      "corroboration_recall": 1.0,
+      "echo_reveals_rejected": 110,
+      "gas_commit": {
+        "n": 130,
+        "mean": 21638.3385,
+        "median": 21640.0,
+        "p95": 21640,
+        "p99": 21640,
+        "min": 21616,
+        "max": 21640,
+        "stdev": 4.4208,
+        "ci95": 0.76
+      },
+      "gas_reveal": {
+        "n": 130,
+        "mean": 22424,
+        "median": 22424.0,
+        "p95": 22424,
+        "p99": 22424,
+        "min": 22424,
+        "max": 22424,
+        "stdev": 0.0,
+        "ci95": 0.0
+      },
+      "gas_per_ioc_total": 44062.3,
+      "latency_commit_ms": {
+        "n": 130,
+        "mean": 9.002,
+        "median": 8.7143,
+        "p95": 10.6162,
+        "p99": 17.6499,
+        "min": 6.7828,
+        "max": 35.0368,
+        "stdev": 2.666,
+        "ci95": 0.4583
+      },
+      "latency_reveal_ms": {
+        "n": 130,
+        "mean": 8.3201,
+        "median": 8.1568,
+        "p95": 10.2432,
+        "p99": 11.3512,
+        "min": 6.6993,
+        "max": 11.5202,
+        "stdev": 0.9331,
+        "ci95": 0.1604
+      },
+      "commit_bytes": 40,
+      "reveal_bytes": 89
+    }
+  },
+  "e6_tamper": {
+    "trials": 500,
+    "detected": 500,
+    "per_kind": {
+      "payload_append": {
+        "trials": 125,
+        "detected": 125
+      },
+      "ip_change": {
+        "trials": 125,
+        "detected": 125
+      },
+      "field_drop": {
+        "trials": 125,
+        "detected": 125
+      },
+      "bit_flip": {
+        "trials": 125,
+        "detected": 125
+      }
+    },
+    "controls": 500,
+    "controls_flagged": 0,
+    "check_time_us": {
+      "n": 500,
+      "mean": 9.5886,
+      "median": 9.25,
+      "p95": 11.416,
+      "p99": 12.916,
+      "min": 7.75,
+      "max": 49.208,
+      "stdev": 2.591,
+      "ci95": 0.2271
+    }
+  },
+  "e7_hub": {
+    "sweep": {
+      "1": {
+        "N": 1,
+        "throughput_mean": 1478.43,
+        "throughput_ci95": 248.3019,
+        "latency_ms": {
+          "n": 200,
+          "mean": 0.6947,
+          "median": 0.6238,
+          "p95": 1.0385,
+          "p99": 1.4011,
+          "min": 0.5551,
+          "max": 2.8327,
+          "stdev": 0.2182,
+          "ci95": 0.0302
+        }
+      },
+      "2": {
+        "N": 2,
+        "throughput_mean": 1659.84,
+        "throughput_ci95": 280.4686,
+        "latency_ms": {
+          "n": 400,
+          "mean": 1.2357,
+          "median": 1.1077,
+          "p95": 2.0164,
+          "p99": 3.831,
+          "min": 0.5296,
+          "max": 5.6413,
+          "stdev": 0.5196,
+          "ci95": 0.0509
+        }
+      },
+      "4": {
+        "N": 4,
+        "throughput_mean": 1692.19,
+        "throughput_ci95": 152.9883,
+        "latency_ms": {
+          "n": 800,
+          "mean": 2.3359,
+          "median": 2.2319,
+          "p95": 3.2035,
+          "p99": 6.455,
+          "min": 0.554,
+          "max": 9.017,
+          "stdev": 0.7552,
+          "ci95": 0.0523
+        }
+      },
+      "8": {
+        "N": 8,
+        "throughput_mean": 1711.61,
+        "throughput_ci95": 91.8225,
+        "latency_ms": {
+          "n": 1600,
+          "mean": 4.2474,
+          "median": 3.5941,
+          "p95": 5.4602,
+          "p99": 34.1702,
+          "min": 0.5594,
+          "max": 65.8648,
+          "stdev": 4.8078,
+          "ci95": 0.2356
+        }
+      },
+      "16": {
+        "N": 16,
+        "throughput_mean": 1736.54,
+        "throughput_ci95": 42.305,
+        "latency_ms": {
+          "n": 3200,
+          "mean": 7.6721,
+          "median": 3.7638,
+          "p95": 34.6734,
+          "p99": 96.7648,
+          "min": 0.5433,
+          "max": 219.7013,
+          "stdev": 16.5886,
+          "ci95": 0.5748
+        }
+      }
+    },
+    "outage": {
+      "nodes": 5,
+      "events_per_node": 100,
+      "attempted": 500,
+      "accepted_before_outage": 251,
+      "rejected_during_outage": 249,
+      "held_in_hub_memory": 251,
+      "recoverable_by_third_party_after_crash": 0
+    }
+  },
+  "e8_propagation": {
+    "trials": 40,
+    "observed": 40,
+    "latency_ms": {
+      "n": 40,
+      "mean": 2.0728,
+      "median": 1.8422,
+      "p95": 3.2078,
+      "p99": 4.1505,
+      "min": 1.3378,
+      "max": 4.1505,
+      "stdev": 0.6023,
+      "ci95": 0.1866
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "meta": {
+    "generated": "2026-09-03T00:35:47",
+    "ganache_client": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
+    "chain_id": 1337,
+    "n_nodes": 5,
+    "iocs_per_node": 60,
+    "overlap_fraction_config": 0.35,
+    "note": "All values measured against a live Ganache chain with N independent simulated honeypot node processes; none hand-typed."
+  },
+  "per_node_anchor_latency_ms": {
+    "node0": {
+      "n": 60,
+      "mean_ms": 9.1897,
+      "median_ms": 8.3031,
+      "p95_ms": 12.0173,
+      "min_ms": 6.3213,
+      "max_ms": 45.1309,
+      "stdev_ms": 4.9312
+    },
+    "node1": {
+      "n": 60,
+      "mean_ms": 8.2242,
+      "median_ms": 7.7277,
+      "p95_ms": 11.0044,
+      "min_ms": 6.0499,
+      "max_ms": 20.7547,
+      "stdev_ms": 2.4901
+    },
+    "node2": {
+      "n": 60,
+      "mean_ms": 8.6559,
+      "median_ms": 8.4963,
+      "p95_ms": 11.6393,
+      "min_ms": 6.0592,
+      "max_ms": 15.2216,
+      "stdev_ms": 1.7932
+    },
+    "node3": {
+      "n": 60,
+      "mean_ms": 8.1931,
+      "median_ms": 8.1058,
+      "p95_ms": 9.8778,
+      "min_ms": 6.1526,
+      "max_ms": 10.9409,
+      "stdev_ms": 1.0359
+    },
+    "node4": {
+      "n": 60,
+      "mean_ms": 7.9315,
+      "median_ms": 8.0799,
+      "p95_ms": 9.3939,
+      "min_ms": 6.0296,
+      "max_ms": 9.7912,
+      "stdev_ms": 1.0534
+    }
+  },
+  "aggregate_anchor_latency_ms": {
+    "n": 300,
+    "mean_ms": 8.4389,
+    "median_ms": 8.1105,
+    "p95_ms": 11.0599,
+    "min_ms": 6.0296,
+    "max_ms": 45.1309,
+    "stdev_ms": 2.7163
+  },
+  "cross_node_propagation": {
+    "trials": 40,
+    "observed_success_rate_pct": 100.0,
+    "latency_ms": {
+      "n": 40,
+      "mean_ms": 1.944,
+      "median_ms": 1.7885,
+      "p95_ms": 2.922,
+      "min_ms": 1.289,
+      "max_ms": 3.551,
+      "stdev_ms": 0.5349
+    }
+  },
+  "dedup_and_consensus": {
+    "total_local_iocs": 220,
+    "total_reconstructed_from_chain": 220,
+    "recall_pct": 100.0,
+    "ground_truth_shared_iocs": 25,
+    "corroborated_by_2plus_nodes": 25,
+    "corroboration_precision_pct": 100.0,
+    "corroboration_recall_pct": 100.0
+  },
+  "compromised_node_resilience": {
+    "victim_node": "node0",
+    "original_hash_prefix": "3e24abf738c9a66a",
+    "tampered_hash_prefix": "d93641e37aacf090",
+    "original_hash_present_on_chain": true,
+    "forged_hash_present_on_chain": false,
+    "tamper_detected_via_shared_ledger": true
+  },
+  "sequential_baseline_throughput": {
+    "writers": 1,
+    "attempted": 100,
+    "ok": 100,
+    "wall_clock_s": 1.014,
+    "throughput_rps": 98.57
+  },
+  "concurrent_node_throughput": {
+    "nodes": 5,
+    "events_per_node": 20,
+    "attempted": 100,
+    "ok": 100,
+    "wall_clock_s": 0.437,
+    "aggregate_throughput_rps": 228.58
+  },
+  "total_anchored_txs": 300
+}

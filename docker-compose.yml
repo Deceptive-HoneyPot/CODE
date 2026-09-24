@@ -45,6 +45,8 @@ services:
     environment:
       - REDIS_HOST=redis
       - GANACHE_URL=http://ganache:7545
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - OPENROUTER_MODEL=${OPENROUTER_MODEL:-meta-llama/llama-3.1-8b-instruct}
     depends_on:
       - redis
       - ganache

@@ -6,7 +6,23 @@ from web3 import Web3
 from datetime import datetime
 import httpx
 
+import ai_classifier
+
 app = FastAPI(title="Honeypot API")
+
+_verdict_http_client: httpx.AsyncClient | None = None
+
+
+@app.on_event("startup")
+async def _init_verdict_client():
+    global _verdict_http_client
+    _verdict_http_client = httpx.AsyncClient()
+
+
+@app.on_event("shutdown")
+async def _close_verdict_client():
+    if _verdict_http_client is not None:
+        await _verdict_http_client.aclose()
 
 app.add_middleware(
     CORSMiddleware,
@@ -166,6 +182,44 @@ async def receive_log(data: dict):
 
     return {"status": "ok", "hash": log_hash, "blockchain": anchored}
 
+@app.post("/api/verdict")
+async def classify_and_anchor(data: dict):
+    """AI-driven counterpart to /api/log's rule-based intent field. Calls the
+    LLM to independently classify the same captured event, anchors the
+    resulting verdict on-chain (not the raw event), and returns both the
+    verdict and the rule-based label for direct agreement comparison."""
+    service = data.get("service", "ssh")
+    raw_event = str(data.get("raw_data", ""))
+
+    result = await ai_classifier.classify_with_llm(_verdict_http_client, service, raw_event)
+    verdict = result["verdict"]
+    llm_latency_ms = result["llm_latency_ms"]
+
+    record = ai_classifier.build_verdict_record(service, raw_event, verdict, ai_classifier.OPENROUTER_MODEL)
+    record["timestamp"] = datetime.now().isoformat()
+    digest = ai_classifier.digest_verdict(record)
+
+    t0 = time.time()
+    anchored = anchor_blockchain(digest)
+    anchor_latency_ms = (time.time() - t0) * 1000
+
+    record["digest"] = digest
+    record["anchored"] = anchored
+    record["rule_based_intent"] = classify_intent(raw_event)
+
+    r.lpush("honeypot:verdicts", json.dumps(record))
+    r.ltrim("honeypot:verdicts", 0, 9999)
+
+    return {
+        "verdict": verdict,
+        "rule_based_intent": record["rule_based_intent"],
+        "agree": verdict["intent"] == record["rule_based_intent"],
+        "digest": digest,
+        "anchored": anchored,
+        "llm_latency_ms": round(llm_latency_ms, 4),
+        "anchor_latency_ms": round(anchor_latency_ms, 4),
+    }
+
 @app.websocket("/ws/live")
 async def ws_endpoint(websocket: WebSocket):
     await websocket.accept()
@@ -211,6 +265,29 @@ def get_stats():
         "by_port": port_counts,
         "hourly": hourly,
         "blockchain_connected": w3.is_connected()
+    }
+
+@app.get("/api/verdicts")
+def get_verdicts(limit: int = 100):
+    raw = r.lrange("honeypot:verdicts", 0, limit - 1)
+    return [json.loads(x) for x in raw]
+
+@app.post("/api/verdict/verify")
+def verify_verdict(data: dict):
+    """Re-hash a stored verdict record and confirm it matches the digest
+    that was anchored, mirroring the evidence-verification pattern but
+    applied to an AI decision instead of a raw captured event."""
+    record = dict(data)
+    stored_digest = record.pop("digest", None)
+    # anchored / rule_based_intent are local annotations added after digest
+    # computation (see /api/verdict) -- not part of the anchored commitment.
+    record.pop("anchored", None)
+    record.pop("rule_based_intent", None)
+    recomputed = ai_classifier.digest_verdict(record)
+    return {
+        "match": recomputed == stored_digest,
+        "recomputed_digest": recomputed,
+        "stored_digest": stored_digest,
     }
 
 @app.get("/health")

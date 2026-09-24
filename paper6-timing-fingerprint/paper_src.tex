@@ -1,0 +1,196 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{newtxtext,newtxmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage[hyphens]{url}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+\title{Measuring the Attacker-Side Fingerprintability of a Multi-Protocol LLM-Backed Honeypot:\\Protocol Conformance and Timing Side Channels}
+
+\author{
+\IEEEauthorblockN{Sisir Reddy Nellore\textsuperscript{1}, Suhas Reddy Annem\textsuperscript{2}, Radhika G\textsuperscript{3}}
+\IEEEauthorblockA{\textit{Department of Computer Science and Engineering}\\
+\textit{Amrita School of Computing, Coimbatore}\\
+\textit{Amrita Vishwa Vidyapeetham, India}\\
+cb.sc.u4cse23129@cb.students.amrita.edu\textsuperscript{1}, cb.sc.u4cse24503@cb.students.amrita.edu\textsuperscript{2}, g\_radhika@cb.amrita.edu\textsuperscript{3}}
+}
+
+\maketitle
+
+\begin{abstract}
+Large language models let a honeypot answer commands it was never scripted for, but every generated answer arrives late and some arrive wrong. This paper measures how easily a remote attacker can tell a three-tier LLM-backed honeypot (static table, response cache, hosted LLM) from the real services it imitates, across three protocols: an SSH shell compared with OpenSSH, an Ethereum JSON-RPC endpoint compared with a reference node, and a CI server compared with Jenkins. We define @@E1_N@@ black-box conformance probes and find that @@E1_TOTAL@@ of them distinguish the decoy deterministically, including an unevaluated shell arithmetic expression, acceptance of arbitrary credentials, and a rejected JSON-RPC batch. On timing, a single-observation latency detector separates the LLM tier from the real service with AUC @@SSH_LLM_AUC@@ in every protocol (median @@SSH_LLM_D@@\,ms against @@SSH_LLM_R@@\,ms for a novel SSH command); the static and cache tiers are also separable (AUC @@SSH_STATIC_AUC@@) because the decoy's extra HTTP hop makes a scripted reply @@SSH_STATIC_RATIO@@$\times$ slower than OpenSSH, although that gap is small enough for Internet jitter to mask. Replaying a @@E3_N@@-payload corpus of real-world attack strings through the engine shows that none of it is served by the static tier: @@E3_LLM_PCT@@\% reaches the model, at a median of @@E3_LLM_MED@@\,ms and a p95 of @@E3_LLM_P95@@\,ms. Because attack payloads are structurally unique, a cache warmed on half of the corpus serves @@E4_EXACT_PCT@@\% of the other half with exact keys and @@E4_NORM_PCT@@\% with normalized keys. The identity and protocol defects are cheap to remove and we list the fixes; the timing gap is not closed by caching and must be addressed by faster generation or by routing more traffic to deterministic tiers.
+\end{abstract}
+
+\begin{IEEEkeywords}
+honeypot, cyber deception, large language models, fingerprinting, timing side channel, protocol conformance, SSH, JSON-RPC
+\end{IEEEkeywords}
+
+\section{Introduction}
+A honeypot is only useful while the attacker believes it. Classical low- and medium-interaction honeypots are believed for a short time: their canned responses, default banners and missing protocol features are fingerprintable at Internet scale~\cite{ref3,ref4}, and network-level timing anomalies were reported as early as 2006~\cite{ref2}. Large language models (LLMs) appear to remove the first limitation. A model that generates a plausible shell listing, SQL error or JSON-RPC result for any input has no canned-response boundary to probe~\cite{ref5,ref6,ref7,ref8}. A recent systematization of LLM honeypots nevertheless lists response timing as ``a critical and unresolved challenge''~\cite{ref9}, and benchmarking studies report that LLM backends differ from one another by an order of magnitude in latency~\cite{ref10,ref11}. What none of this work reports is the quantity that matters to an attacker: how separable the honeypot is from the genuine service it claims to be, under probes the attacker can send from outside.
+
+This paper measures that quantity for a deployed multi-protocol honeypot whose response engine has three tiers, a static command table, a Redis cache and a hosted LLM (Fig.~\ref{fig:pipeline}). We probe each decoy and its real counterpart identically and ask three questions. Which deterministic probes reveal the decoy regardless of timing? How well does response latency alone reveal it, per tier? And how much of a realistic attack corpus actually reaches the slow tier, so that caching could in principle hide it? The contributions are:
+\begin{enumerate}
+\item A conformance probe set of @@E1_N@@ black-box tests across SSH, JSON-RPC and HTTP, with reference behavior measured on OpenSSH, an Ethereum client and Jenkins (Section~\ref{sec:method}); @@E1_TOTAL@@ probes distinguish the decoy (Section~\ref{sec:res-conf}).
+\item A per-tier timing analysis with @@TRIALS@@ trials per probe class, reported as latency distributions and the AUC of a single-observation detector (Section~\ref{sec:res-time}).
+\item A tier-exposure measurement over a @@E3_N@@-payload corpus of real-world attack strings, and an analysis of exact-match versus normalized cache keys that bounds what caching can hide (Sections~\ref{sec:res-corpus} and \ref{sec:res-cache}).
+\item A ranking of mitigations by implementation cost and by which of the three fingerprint classes they remove (Section~\ref{sec:discussion}).
+\end{enumerate}
+
+\section{Related Work}
+Provos's virtual honeypot framework established emulated services as sensors~\cite{ref1}. Defibaugh-Chavez et al.\ showed that emulated services and virtual environments can be recognized from network-level behavior, including response times to simple requests~\cite{ref2}. Vetterl and Clayton fingerprinted low- and medium-interaction honeypots at Internet scale by finding protocol responses in which the honeypot implementation deviates from the software it imitates~\cite{ref3}, and Morishita et al.\ measured how many deployed honeypots reveal themselves through default configurations~\cite{ref4}. Our conformance probes follow the same logic, applied to a system whose responses are partly generated rather than scripted.
+
+LLM honeypots began with shelLM~\cite{ref5}, which showed that a model can sustain a believable Linux shell, and with Ragsdale and Boppana's low-risk design that curates model inputs~\cite{ref6}. Weber et al.\ proposed a unified evaluation of response quality~\cite{ref7}; LLMHoney reports mean latencies near three seconds for hosted models~\cite{ref8}; Magazov et al.\ benchmark eleven backends and find that a classifier can identify the backend from a single response, and separately route commands to different models by attack phase to trade fidelity against latency~\cite{ref10,ref11}. The SoK by Bridges et al.\ organizes detection vectors against LLM simulation capabilities and identifies timing as open~\cite{ref9}. These studies measure the honeypot's own latency; we measure its distinguishability from the real service, which requires probing both under the same client and conditions, and we do so for three protocols rather than SSH alone.
+
+\section{System Under Test and Threat Model}
+\label{sec:system}
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\columnwidth]{figures/diag_pipeline.png}
+\caption{The honeypot under test. Five decoys sit behind a port-guarding proxy and obtain their answers from a three-tier response engine. The attacker observes only protocol behavior and timing; the same probes are sent to reference implementations of each service.}
+\label{fig:pipeline}
+\end{figure}
+
+\subsection{Honeypot}
+The system is a containerized deception platform built by the authors; the evaluation treats it as an opaque target, and the harness can be pointed at any honeypot that exposes the same protocols. A TCP proxy exposes five ports and forwards each to a decoy: an SSH shell built on the \texttt{asyncssh} library~\cite{ref12}, an Ethereum JSON-RPC endpoint~\cite{ref13,ref14}, a Jenkins-like CI server, an internal AI inference API, and an HTTP gateway to a seeded PostgreSQL database. Each decoy logs the interaction and asks a shared response engine for the reply. The engine answers in three tiers. Tier~1 is a static table of 30 reconnaissance commands (\texttt{whoami}, \texttt{uname -a}, \texttt{cat /etc/passwd}, \ldots) plus prefix rules for \texttt{cd}, \texttt{sudo}, \texttt{echo} and file-creation commands; it applies to the SSH decoy only. Tier~2 is a Redis cache keyed on the MD5 of the command and the last two commands of the session, with a six-hour TTL. Tier~3 is a hosted model (Llama-3.1-8B-Instruct through the OpenRouter API) with a per-service system prompt and a 60-token response limit. A decoy therefore answers from tier~1 in microseconds plus one HTTP hop, from tier~2 in one Redis lookup plus the hop, and from tier~3 after a remote inference call.
+
+\subsection{Attacker}
+The attacker is remote, has no foothold, and interacts only through the exposed ports as an ordinary client would. It may compare what it observes with the behavior of the software the decoy claims to be, and it may time its own requests. It sends a handful of requests per host, so a detector that needs a single observation is more useful to it than one that needs a distribution. We do not consider attackers that have compromised the honeypot host or that observe network traffic elsewhere.
+
+\subsection{Reference services}
+Each decoy is compared with a real implementation run in the same Docker environment on the same machine: OpenSSH 10.3 (banner \texttt{@@REAL_SSH@@}, password authentication enabled), Ganache 7.9.2~\cite{ref16} as the Ethereum node (banner \texttt{@@REAL_RPC@@}), and @@REAL_CI@@. The AI API and SQL gateway have no canonical counterpart, since they imitate internal services rather than a named product, and are excluded from the pairwise comparison; their payload classes still appear in the corpus experiment.
+
+\section{Method}
+\label{sec:method}
+All measurements are made by one harness (\texttt{benchmark\_fingerprint.py}) from the host, through the proxy for decoys and directly for reference services, over the loopback interface, in a single run of @@RUNTIME_MIN@@ minutes.
+
+\textbf{E1, conformance.} For each protocol a fixed list of black-box probes is sent to decoy and reference and the observable answer is recorded: for SSH the version banner, host-key type, cipher negotiated by the same client, whether random credentials are accepted, whether an \texttt{exec} request is honored, and the output of six shell commands chosen to exercise arithmetic expansion, compound commands, error message format and state (\texttt{cd} then \texttt{pwd}); for JSON-RPC the client version, chain id, the error object for an unknown method, the response to a malformed body, id echoing, batch requests, missing parameters, block-number monotonicity and the field count of a block object; for the CI server status codes and headers for the root, \texttt{/api/json}, an unknown path, \texttt{/login}, \texttt{HEAD}, \texttt{/robots.txt} and a build trigger. A probe is \emph{distinguishing} when the two answers differ.
+
+\textbf{E2, timing.} For each protocol and tier, @@TRIALS@@ trials measure the wall-clock time from sending a request to receiving the complete reply, for the decoy and for the reference under the same client code. SSH classes are connect-plus-authenticate, a static-tier recon command, a novel command with a random suffix (LLM tier), the same novel command repeated (cache tier), and a five-command reconnaissance session. JSON-RPC classes are a method in the decoy's static table, a novel \texttt{eth\_getStorageAt} call (LLM tier) and its repeat (cache tier). CI classes are an unknown path (the framework's static 404), \texttt{GET /api/json} (generated once, then served from the cache because its key is constant) and a build \texttt{POST} with a random parameter (LLM tier). Distinguishability is reported as the AUC of a threshold detector, $\Pr[t_{\mathrm{decoy}} > t_{\mathrm{real}}]$, which equals the Mann--Whitney statistic~\cite{ref15}; an AUC near 0 means the decoy is reliably \emph{faster}. Where the two distributions overlap we also report the accuracy of the best single threshold in either direction, the detector an attacker with one observation would use.
+
+\textbf{E3, tier exposure.} The platform's evaluation corpus of @@E3_N@@ real-world attack payloads (SQL injection, command injection, XXE, prompt injection, Ethereum RPC abuse, Jenkins exploitation; each tagged with a unique nonce) is replayed through the response engine with @@E3_CONC@@ concurrent clients. Before each request the harness decides which tier will answer by applying the static rules and checking the cache for the exact key; the reply latency is recorded per tier. A second pass over a 300-payload sample measures cache-tier latency once every key is warm.
+
+\textbf{E4, cache reuse.} The corpus is split in half. Exact keys and normalized keys (nonce and comment suffixes removed, whitespace collapsed, long hexadecimal and numeric literals replaced by placeholders) from the first half are used to count how many payloads of the second half would hit the cache. This bounds the fraction of \emph{new} attacker traffic that a warmed cache can serve without reaching the model.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{Conformance}
+\label{sec:res-conf}
+Table~\ref{tab:conf} lists every probe. @@E1_TOTAL@@ of @@E1_N@@ distinguish the decoy: @@E1_SSH@@ for SSH, @@E1_RPC@@ for JSON-RPC and @@E1_CI@@ for the CI server. Three classes of defect appear. The first is implementation identity: the SSH banner names the \texttt{asyncssh} library, the RPC client version is generated by the model and varied between runs (\texttt{Ethereum/Clique/2.0} in one, \texttt{Istanbul} in another), neither in the form a real client emits, and the CI server reports \texttt{uvicorn} where Jenkins reports Jetty and adds \texttt{X-Jenkins} headers. The second is protocol coverage: the decoy accepts any credentials, does not honor \texttt{exec} requests, rejects JSON-RPC batches and malformed bodies with HTTP 500, and answers \texttt{HEAD}, \texttt{/login} and \texttt{/robots.txt} with 404. The third is fast-path semantics: tier~1 returns \texttt{\$((7*6))} unevaluated, treats \texttt{cd /tmp; pwd} as a directory named \texttt{/tmp; pwd}, and hands a compound command to the model, which reports it as not found. The model itself did well where it was reached: its error message for a missing file matched the real shell byte for byte.
+
+\begin{table*}[!t]
+\caption{E1: black-box conformance probes, decoy versus reference implementation}
+\label{tab:conf}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}p{0.25\textwidth}p{0.29\textwidth}p{0.31\textwidth}c@{}}
+\toprule
+Probe & Decoy & Reference & Distinguishes \\
+\midrule
+@@E1_ROWS@@
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\subsection{Timing}
+\label{sec:res-time}
+Table~\ref{tab:timing} and Fig.~\ref{fig:latency} report E2. The LLM tier is separable in every protocol: a novel SSH command takes a median of @@SSH_LLM_D@@\,ms on the decoy (p95 @@SSH_LLM_D_P95@@\,ms, minimum @@SSH_LLM_D_MIN@@\,ms) against @@SSH_LLM_R@@\,ms on OpenSSH, for an AUC of @@SSH_LLM_AUC@@; a novel RPC call takes @@RPC_LLM_D@@\,ms against @@RPC_LLM_R@@\,ms (AUC @@RPC_LLM_AUC@@); and a build \texttt{POST} to the CI decoy takes @@CI_BUILD_D@@\,ms against @@CI_BUILD_R@@\,ms on Jenkins (AUC @@CI_BUILD_AUC@@). The slowest reference reply in each class is faster than the fastest model reply, so any threshold between them classifies every trial correctly. Repeating a command inside the same SSH session does not help the decoy: the cache key includes the previous two commands, so the repeat is a fresh model call (median @@SSH_REPEAT_D@@\,ms).
+
+The fast tiers also leak, by a smaller margin. A static-tier SSH command answers in @@SSH_STATIC_D@@\,ms on the decoy against @@SSH_STATIC_R@@\,ms on OpenSSH (AUC @@SSH_STATIC_AUC@@), the difference being the HTTP hop from the decoy to the engine; the cache tier behaves the same way (@@SSH_CACHE_D@@\,ms, AUC @@SSH_CACHE_AUC@@), and a five-command reconnaissance session served entirely from tier~1 takes @@SSH_SESS_D@@\,ms against @@SSH_SESS_R@@\,ms. For JSON-RPC a method in the decoy's static table takes @@RPC_STATIC_D@@\,ms against @@RPC_STATIC_R@@\,ms (AUC @@RPC_STATIC_AUC@@), and a cached CI status page @@CI_API_D@@\,ms against @@CI_API_R@@\,ms. Connect-plus-authenticate is the weakest signal: @@SSH_AUTH_D@@\,ms against @@SSH_AUTH_R@@\,ms (AUC @@SSH_AUTH_AUC@@, best threshold @@SSH_AUTH_ACC@@\% accurate), because the decoy posts the captured credentials to its backend before replying. One probe leaks in the opposite direction: an unknown path on the CI decoy is answered by the framework's 404 handler in @@CI_404_D@@\,ms, faster than Jenkins renders its error page (@@CI_404_R@@\,ms, AUC @@CI_404_AUC@@). All fast-tier gaps are of the order of ten milliseconds, one local round trip, and would be masked by the variance an attacker sees across the Internet; they are laboratory fingerprints. The LLM-tier gap is three orders of magnitude and survives any network.
+
+\begin{table}[!t]
+\caption{E2: response latency, decoy vs.\ reference (@@TRIALS@@ trials per class; ms)}
+\label{tab:timing}
+\centering
+\scriptsize
+\renewcommand{\arraystretch}{1.15}
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{@{}llrrrrr@{}}
+\toprule
+& & \multicolumn{2}{c}{Decoy} & \multicolumn{2}{c}{Reference} & \\
+\cmidrule(lr){3-4}\cmidrule(lr){5-6}
+Service & Probe class & med. & p95 & med. & p95 & AUC \\
+\midrule
+@@E2_ROWS@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/fig_latency.png}
+\caption{E2: latency of decoy and reference per probe class (p5, median, p95 over @@TRIALS@@ trials; logarithmic axis). AUC is the probability that the decoy's reply is slower.}
+\label{fig:latency}
+\end{figure}
+
+\subsection{Tier exposure over the attack corpus}
+\label{sec:res-corpus}
+Table~\ref{tab:corpus} and Fig.~\ref{fig:tiers} report E3 for the corpus classes served by each decoy. All @@E3_N@@ payloads reached the model: none matched the static table, none hit the cold cache, and no request failed. The static table covers interactive reconnaissance commands, whereas the corpus consists of exploitation strings (URL-encoded command injection, SQL injection, XML external entities, serialized RPC calls), none of which equals a table entry. The model's median latency over the corpus was @@E3_LLM_MED@@\,ms, with a p95 of @@E3_LLM_P95@@\,ms and a maximum of @@E3_LLM_MAX@@\,ms; the per-service medians in Table~\ref{tab:corpus} lie between @@E3_MED_LO@@ and @@E3_MED_HI@@\,ms, two to three orders of magnitude above the reference services' replies to the same request classes. Every exploitation attempt in the corpus therefore presented the timing signature of Section~\ref{sec:res-time}. On the second pass, @@E3_SP_CACHE_PCT@@\% of the sample was served from the warm cache at a median of @@E3_SP_CACHE_MED@@\,ms (p95 @@E3_SP_CACHE_P95@@\,ms), confirming that the cache removes the model's latency whenever it hits. The question is how often it can.
+
+\begin{table}[!t]
+\caption{E3: model-tier reply latency over the attack corpus (ms) and the reference service's median for the same request class}
+\label{tab:corpus}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.12}
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lrrrrrr@{}}
+\toprule
+Service & $n$ & to model & median & p95 & max & ref.\ med. \\
+\midrule
+@@E3_ROWS@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=0.95\columnwidth]{figures/fig_tiers.png}
+\caption{E3: latency of the model's reply to the attack corpus, per service (median, p5--p95 and min--max, logarithmic axis), against the median reply of the reference service to the same class of request where one exists.}
+\label{fig:tiers}
+\end{figure}
+
+\subsection{What caching can and cannot hide}
+\label{sec:res-cache}
+E4 bounds the benefit of a warm cache for traffic the honeypot has not seen. The @@E4_CORPUS@@ payloads carry @@E4_DISTINCT_EXACT@@ distinct exact keys and @@E4_DISTINCT_NORM@@ distinct normalized keys. Warming the cache with half of the corpus and replaying the other half gives @@E4_EXACT_HITS@@ exact-key hits (@@E4_EXACT_PCT@@\%) and @@E4_NORM_HITS@@ normalized-key hits (@@E4_NORM_PCT@@\%); Table~\ref{tab:cache} gives the per-service breakdown. Normalization recovers reuse only where attackers repeat a template with different literals. The remainder of the corpus is structurally distinct and reaches the model on first sight, whatever the cache holds.
+
+\begin{table}[!t]
+\caption{E4: normalized-key cache hits on the held-out half of the corpus}
+\label{tab:cache}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.12}
+\begin{tabular}{@{}lrrr@{}}
+\toprule
+Service & held-out & hits & rate \\
+\midrule
+@@E4_ROWS@@
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Discussion}
+\label{sec:discussion}
+\subsection{Ranking the mitigations}
+The three fingerprint classes differ in what removing them costs. \emph{Identity leaks} (banner, client-version string, \texttt{Server} header, missing \texttt{X-Jenkins} headers) are configuration: \texttt{asyncssh} accepts a custom version string, and the HTTP decoys can set headers copied from the product they imitate. \emph{Protocol-coverage gaps} (\texttt{exec}, batch JSON-RPC, malformed-body handling, \texttt{HEAD} and \texttt{/login}, credential acceptance) require code but no model: each is a deterministic behavior of the reference implementation that can be copied, and rejecting some credentials costs nothing in captured intelligence. \emph{Fast-path semantic errors} are the cheapest of all to fix and the most damaging, because they occur precisely on the commands the static tier exists to answer instantly; arithmetic expansion and compound-command splitting are a few lines. Together these fixes remove every distinguishing probe in Table~\ref{tab:conf}; the decoy's fixed block number did not distinguish it here only because the reference chain was idle, and should advance with time in deployment.
+
+Timing is the hard case. The fast-tier gap could be closed by moving the static table into the decoy process, eliminating the HTTP hop, and by answering the authentication request before logging it. The LLM-tier gap cannot be closed by caching, because Section~\ref{sec:res-cache} shows that new attack traffic almost entirely misses even a normalized cache; it can only be narrowed by making generation faster (a smaller local model, speculative decoding, or streaming the first bytes early) or hidden by making the fast tiers artificially slow so that no reply is ever fast, which imposes the honeypot's worst latency on every command and is itself a fingerprint against a local reference. The phase-adaptive routing of Magazov et al.~\cite{ref11} and the curated-input design of Ragsdale and Boppana~\cite{ref6} are the two published directions consistent with our data: route what can be answered deterministically to a deterministic tier, and send to the model only what must be generated.
+
+\subsection{Limitations}
+All measurements are on one machine over loopback, so the fast-tier gaps are laboratory figures that Internet jitter would largely mask; the LLM-tier gap would not be masked. The reference services are one implementation each, and one probe (the unknown-method error code) shows the decoy closer to the JSON-RPC specification~\cite{ref13} than the reference client is; a defender should compare against the exact software being imitated. The LLM tier's latency depends on the hosted provider at the time of measurement. The corpus is the platform's existing evaluation set, so the tier shares describe exploitation traffic and would differ for a corpus of interactive sessions. Two of the five decoys have no reference and were not compared.
+
+\section{Conclusion}
+An LLM-backed honeypot can be distinguished from the service it imitates in three ways: by what it reports about itself, by how quickly it replies, and by what its fast path computes incorrectly. Against reference implementations of SSH, Ethereum JSON-RPC and Jenkins, @@E1_TOTAL@@ of @@E1_N@@ black-box probes revealed the decoy, the model tier was separable by a single timing observation with AUC @@RPC_LLM_AUC@@ in every protocol, and @@E3_LLM_PCT@@\% of a real-world attack corpus reached that tier. The identity and protocol gaps are cheap to close and this paper lists them; the timing gap is not closed by caching, which reused @@E4_NORM_PCT@@\% of held-out traffic even with normalized keys, and must be addressed by faster generation or by routing more of the traffic away from the model.
+
+\begin{thebibliography}{00}
+@@BIBLIOGRAPHY@@
+\end{thebibliography}
+
+\end{document}

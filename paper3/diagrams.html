@@ -1,0 +1,123 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body{margin:0;background:#fff;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#0b0b0b}
+  .card{padding:22px 26px;background:#fff}
+  svg{display:block}
+  text{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif}
+</style></head><body>
+
+<!-- ============ PIPELINE (wide) ============ -->
+<div class="card" id="pipeline">
+<svg width="1120" height="300" viewBox="0 0 1120 300">
+  <defs>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#52514e"/>
+    </marker>
+  </defs>
+
+  <!-- exposed boundary band -->
+  <rect x="20" y="70" width="200" height="160" rx="10" fill="#fdeee7" stroke="#eb6834" stroke-width="1.5"/>
+  <text x="120" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#eb6834">EXPOSED BOUNDARY</text>
+  <rect x="45" y="100" width="150" height="46" rx="7" fill="#fff" stroke="#eb6834" stroke-width="1.3"/>
+  <text x="120" y="122" text-anchor="middle" font-size="13" font-weight="600">Decoy service</text>
+  <text x="120" y="139" text-anchor="middle" font-size="11" fill="#52514e">(attacker interacts)</text>
+  <text x="120" y="176" text-anchor="middle" font-size="11" fill="#52514e">SSH · SQL · AI ·</text>
+  <text x="120" y="192" text-anchor="middle" font-size="11" fill="#52514e">Web3 · CI/CD</text>
+
+  <!-- internal trusted band -->
+  <rect x="250" y="70" width="600" height="160" rx="10" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+  <text x="550" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#2a78d6">INTERNAL / TRUSTED (isolated network)</text>
+
+  <rect x="272" y="112" width="120" height="76" rx="7" fill="#fff" stroke="#2a78d6" stroke-width="1.3"/>
+  <text x="332" y="140" text-anchor="middle" font-size="13" font-weight="600">Collector</text>
+  <text x="332" y="158" text-anchor="middle" font-size="10.5" fill="#52514e">canonical</text>
+  <text x="332" y="172" text-anchor="middle" font-size="10.5" fill="#52514e">serialize</text>
+
+  <rect x="430" y="112" width="120" height="76" rx="7" fill="#fff" stroke="#2a78d6" stroke-width="1.3"/>
+  <text x="490" y="140" text-anchor="middle" font-size="13" font-weight="600">SHA-256</text>
+  <text x="490" y="158" text-anchor="middle" font-size="10.5" fill="#52514e">256-bit</text>
+  <text x="490" y="172" text-anchor="middle" font-size="10.5" fill="#52514e">digest</text>
+
+  <rect x="588" y="112" width="120" height="76" rx="7" fill="#fff" stroke="#2a78d6" stroke-width="1.3"/>
+  <text x="648" y="140" text-anchor="middle" font-size="13" font-weight="600">Datastore</text>
+  <text x="648" y="158" text-anchor="middle" font-size="10.5" fill="#52514e">off-chain</text>
+  <text x="648" y="172" text-anchor="middle" font-size="10.5" fill="#52514e">record</text>
+
+  <rect x="746" y="112" width="82" height="76" rx="7" fill="#fff" stroke="#2a78d6" stroke-width="1.3"/>
+  <text x="787" y="146" text-anchor="middle" font-size="12" font-weight="600">Live</text>
+  <text x="787" y="163" text-anchor="middle" font-size="12" font-weight="600">feed</text>
+
+  <!-- ledger band -->
+  <rect x="880" y="70" width="220" height="160" rx="10" fill="#e9f7f1" stroke="#1baf7a" stroke-width="1.5"/>
+  <text x="990" y="60" text-anchor="middle" font-size="13" font-weight="700" fill="#1baf7a">APPEND-ONLY LEDGER</text>
+  <rect x="905" y="105" width="170" height="90" rx="7" fill="#fff" stroke="#1baf7a" stroke-width="1.3"/>
+  <text x="990" y="135" text-anchor="middle" font-size="13" font-weight="600">Ethereum tx</text>
+  <text x="990" y="156" text-anchor="middle" font-size="11" fill="#52514e">digest in</text>
+  <text x="990" y="171" text-anchor="middle" font-size="11" fill="#52514e">input data</text>
+  <text x="990" y="186" text-anchor="middle" font-size="10.5" fill="#1baf7a">immutable</text>
+
+  <!-- arrows -->
+  <line x1="196" y1="135" x2="268" y2="150" stroke="#52514e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <text x="232" y="128" text-anchor="middle" font-size="10.5" fill="#52514e">forward</text>
+  <line x1="392" y1="150" x2="426" y2="150" stroke="#52514e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="550" y1="150" x2="584" y2="150" stroke="#52514e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="708" y1="150" x2="742" y2="150" stroke="#52514e" stroke-width="1.6" marker-end="url(#ar)"/>
+  <line x1="490" y1="112" x2="900" y2="112" stroke="#1baf7a" stroke-width="1.6" marker-end="url(#ar)" stroke-dasharray="5 4"/>
+  <text x="700" y="103" text-anchor="middle" font-size="10.5" fill="#1baf7a">anchor digest on-chain</text>
+</svg>
+</div>
+
+<!-- ============ THREAT (single column) ============ -->
+<div class="card" id="threat">
+<svg width="540" height="330" viewBox="0 0 540 330">
+  <defs>
+    <marker id="ar2" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#e0524f"/>
+    </marker>
+    <marker id="ar3" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+      <path d="M0,0 L9,4.5 L0,9 Z" fill="#1baf7a"/>
+    </marker>
+  </defs>
+
+  <!-- attacker -->
+  <circle cx="70" cy="70" r="26" fill="#fdeee7" stroke="#e0524f" stroke-width="1.5"/>
+  <text x="70" y="66" text-anchor="middle" font-size="12" font-weight="700" fill="#e0524f">Attacker</text>
+  <text x="70" y="82" text-anchor="middle" font-size="10" fill="#52514e">owns decoy</text>
+
+  <!-- compromise boundary -->
+  <rect x="30" y="120" width="300" height="170" rx="10" fill="#fdeee7" stroke="#e0524f" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="180" y="112" text-anchor="middle" font-size="12.5" font-weight="700" fill="#e0524f">COMPROMISE BOUNDARY</text>
+
+  <rect x="55" y="150" width="115" height="60" rx="7" fill="#fff" stroke="#52514e" stroke-width="1.2"/>
+  <text x="112" y="176" text-anchor="middle" font-size="12" font-weight="600">Decoy host</text>
+  <text x="112" y="194" text-anchor="middle" font-size="10.5" fill="#52514e">local log</text>
+
+  <rect x="195" y="150" width="115" height="60" rx="7" fill="#fff" stroke="#52514e" stroke-width="1.2"/>
+  <text x="252" y="176" text-anchor="middle" font-size="12" font-weight="600">Stored</text>
+  <text x="252" y="194" text-anchor="middle" font-size="10.5" fill="#52514e">record + hash</text>
+
+  <text x="180" y="245" text-anchor="middle" font-size="11" fill="#e0524f" font-weight="600">attacker can edit / delete these</text>
+  <text x="180" y="266" text-anchor="middle" font-size="10.5" fill="#52514e">...but cannot change what was already</text>
+  <text x="180" y="281" text-anchor="middle" font-size="10.5" fill="#52514e">committed outside this boundary</text>
+
+  <!-- attacker edits -->
+  <line x1="90" y1="92" x2="112" y2="146" stroke="#e0524f" stroke-width="1.6" marker-end="url(#ar2)"/>
+  <line x1="90" y1="88" x2="240" y2="146" stroke="#e0524f" stroke-width="1.4" marker-end="url(#ar2)" stroke-dasharray="4 3"/>
+
+  <!-- ledger outside -->
+  <rect x="380" y="130" width="135" height="90" rx="9" fill="#e9f7f1" stroke="#1baf7a" stroke-width="1.6"/>
+  <text x="447" y="160" text-anchor="middle" font-size="12.5" font-weight="700" fill="#1baf7a">Ledger</text>
+  <text x="447" y="180" text-anchor="middle" font-size="10.5" fill="#52514e">anchored</text>
+  <text x="447" y="195" text-anchor="middle" font-size="10.5" fill="#52514e">digest</text>
+  <text x="447" y="210" text-anchor="middle" font-size="10" fill="#1baf7a">out of reach</text>
+
+  <!-- anchor arrow from stored to ledger -->
+  <line x1="310" y1="175" x2="376" y2="175" stroke="#1baf7a" stroke-width="1.7" marker-end="url(#ar3)"/>
+  <text x="343" y="167" text-anchor="middle" font-size="9.5" fill="#1baf7a">anchor</text>
+
+  <!-- verify comparison -->
+  <text x="270" y="315" text-anchor="middle" font-size="11" fill="#1baf7a" font-weight="600">verify: re-hash stored record  ==  on-chain digest ?  →  mismatch = proof of tampering</text>
+</svg>
+</div>
+
+</body></html>

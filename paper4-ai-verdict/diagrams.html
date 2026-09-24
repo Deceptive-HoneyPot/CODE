@@ -1,0 +1,140 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; background: #fff; }
+  .diagram { padding: 20px; background: #fff; display: inline-block; }
+
+  /* ---------- Fig 1: dual-classification pipeline ---------- */
+  #pipeline { width: 1180px; }
+  .stage-row { display: flex; align-items: stretch; gap: 0; }
+  .zone {
+    border-radius: 8px; padding: 14px 16px; position: relative;
+  }
+  .zone-label {
+    position: absolute; top: -11px; left: 14px; background: #fff;
+    padding: 0 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .zone-decoy { border: 2px solid #c65a3a; background: #fdf3ee; }
+  .zone-decoy .zone-label { color: #c65a3a; }
+  .zone-dual { border: 2px solid #2f6f5e; background: #eef6f3; }
+  .zone-dual .zone-label { color: #2f6f5e; }
+  .zone-chain { border: 2px solid #2a5fa8; background: #eef3fb; }
+  .zone-chain .zone-label { color: #2a5fa8; }
+
+  .node {
+    background: #fff; border: 1.5px solid #333; border-radius: 6px;
+    padding: 10px 12px; font-size: 12px; text-align: center; min-width: 118px;
+  }
+  .node .t { font-weight: 700; font-size: 12.5px; margin-bottom: 3px; }
+  .node .s { color: #555; font-size: 10.5px; line-height: 1.3; }
+  .node.rule { border-color: #b8860b; }
+  .node.rule .t { color: #8a6300; }
+  .node.llm { border-color: #6a3d9a; }
+  .node.llm .t { color: #5a2d8a; }
+
+  .arrow-h { display: flex; align-items: center; padding: 0 8px; font-size: 20px; color: #555; }
+  .arrow-v { display: flex; justify-content: center; padding: 4px 0; font-size: 18px; color: #555; }
+
+  .dual-col { display: flex; flex-direction: column; gap: 8px; align-items: center; }
+  .compare-node {
+    border: 1.5px dashed #2f6f5e; border-radius: 6px; padding: 8px 12px;
+    font-size: 11px; text-align: center; color: #2f6f5e; background: #fff;
+    min-width: 118px;
+  }
+  .compare-node .t { font-weight: 700; }
+
+  /* ---------- Fig 2: verdict record + digest scope ---------- */
+  #record { width: 620px; }
+  .rec-title { font-size: 12px; font-weight: 700; color: #333; margin-bottom: 8px; letter-spacing: 0.03em; text-transform: uppercase;}
+  .rec-box { border: 1.5px solid #333; border-radius: 6px; overflow: hidden; }
+  .rec-field { display: flex; border-bottom: 1px solid #ddd; font-family: "SF Mono", Menlo, monospace; font-size: 11.5px; }
+  .rec-field:last-child { border-bottom: none; }
+  .rec-key { width: 150px; padding: 7px 10px; background: #f4f4f4; color: #555; font-weight: 600; border-right: 1px solid #ddd; }
+  .rec-val { flex: 1; padding: 7px 10px; color: #222; }
+  .rec-field.digested { background: #eef6f3; }
+  .rec-field.digested .rec-key { background: #dcece5; color: #2f6f5e; }
+  .rec-field.local { background: #fdf3ee; }
+  .rec-field.local .rec-key { background: #f5ddd0; color: #b04a2a; }
+  .rec-legend { display: flex; gap: 20px; margin-top: 10px; font-size: 11px; color: #444; }
+  .swatch { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+</style>
+</head>
+<body>
+
+<div class="diagram" id="pipeline">
+  <div class="stage-row" style="align-items: stretch;">
+
+    <div class="zone zone-decoy" style="display:flex; align-items:center;">
+      <span class="zone-label">Exposed decoy</span>
+      <div class="node">
+        <div class="t">Captured event</div>
+        <div class="s">e.g. "eth_sendTransaction"<br>service = web3</div>
+      </div>
+    </div>
+
+    <div class="arrow-h">&rarr;</div>
+
+    <div class="zone zone-dual">
+      <span class="zone-label">Dual classification (internal collector)</span>
+      <div style="display:flex; gap:18px; align-items:center;">
+        <div class="dual-col">
+          <div class="node rule">
+            <div class="t">Rule-based classifier</div>
+            <div class="s">fixed keyword rules<br>~0.01 ms, deterministic</div>
+          </div>
+        </div>
+        <div class="dual-col">
+          <div class="node llm">
+            <div class="t">LLM classifier</div>
+            <div class="s">OpenRouter inference<br>intent + severity + reason</div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex; justify-content:center; margin-top:10px;">
+        <div class="compare-node">
+          <div class="t">Agreement check</div>
+          <div>rule_based_intent == llm.intent ?</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow-h">&rarr;</div>
+
+    <div class="zone zone-chain" style="display:flex; align-items:center;">
+      <span class="zone-label">Append-only ledger</span>
+      <div class="node" style="border-color:#2a5fa8;">
+        <div class="t" style="color:#1d4680;">Verdict digest anchored</div>
+        <div class="s">SHA-256(verdict record)<br>as Ethereum tx input data</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="diagram" id="record">
+  <div class="rec-title">Verdict record &mdash; what gets hashed vs. what is a local annotation</div>
+  <div class="rec-box">
+    <div class="rec-field digested"><div class="rec-key">service</div><div class="rec-val">"web3"</div></div>
+    <div class="rec-field digested"><div class="rec-key">raw_event</div><div class="rec-val">"{&quot;method&quot;:&quot;eth_sendTransaction&quot;,...}"</div></div>
+    <div class="rec-field digested"><div class="rec-key">intent</div><div class="rec-val">"crypto_theft"</div></div>
+    <div class="rec-field digested"><div class="rec-key">severity</div><div class="rec-val">85</div></div>
+    <div class="rec-field digested"><div class="rec-key">reason</div><div class="rec-val">"Unauthorized fund transfer attempt"</div></div>
+    <div class="rec-field digested"><div class="rec-key">model</div><div class="rec-val">"meta-llama/llama-3.1-8b-instruct"</div></div>
+    <div class="rec-field digested"><div class="rec-key">timestamp</div><div class="rec-val">"2026-08-19T01:12:03.881Z"</div></div>
+    <div class="rec-field local"><div class="rec-key">digest</div><div class="rec-val">"bf95d38d...c362cf482"  (output, not input)</div></div>
+    <div class="rec-field local"><div class="rec-key">anchored</div><div class="rec-val">true  (output, not input)</div></div>
+    <div class="rec-field local"><div class="rec-key">rule_based_intent</div><div class="rec-val">"crypto_theft"  (added after digest, for comparison only)</div></div>
+  </div>
+  <div class="rec-legend">
+    <span><span class="swatch" style="background:#c9e5da;"></span>canonicalized &amp; hashed (7 fields)</span>
+    <span><span class="swatch" style="background:#f5ddd0;"></span>local annotation, excluded from digest (3 fields)</span>
+  </div>
+</div>
+
+</body>
+</html>

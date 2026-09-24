@@ -1,0 +1,79 @@
+{
+  "meta": {
+    "generated": "2026-08-18T22:40:19",
+    "backend": "http://localhost:3001",
+    "ganache_client": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
+    "chain_id": 1337,
+    "gas_price_wei": 2000000000,
+    "note": "All values measured against the live stack; none hand-typed."
+  },
+  "anchor_latency_ms": {
+    "n": 300,
+    "mean_ms": 10.8605,
+    "median_ms": 10.2189,
+    "p95_ms": 14.4194,
+    "p99_ms": 17.2492,
+    "min_ms": 8.1905,
+    "max_ms": 51.4092,
+    "stdev_ms": 3.1002
+  },
+  "baseline_hash_latency_ms": {
+    "n": 300,
+    "mean_ms": 0.007,
+    "median_ms": 0.0059,
+    "p95_ms": 0.0092,
+    "p99_ms": 0.0245,
+    "min_ms": 0.0056,
+    "max_ms": 0.0602,
+    "stdev_ms": 0.0045
+  },
+  "anchoring_overhead_ms": 10.8535,
+  "verification_latency_ms": {
+    "n": 200,
+    "mean_ms": 0.008,
+    "median_ms": 0.0075,
+    "p95_ms": 0.0087,
+    "p99_ms": 0.0175,
+    "min_ms": 0.0073,
+    "max_ms": 0.0582,
+    "stdev_ms": 0.0037
+  },
+  "anchored_success": {
+    "attempted": 300,
+    "anchored_ok": 300,
+    "success_rate_pct": 100.0
+  },
+  "gas": {
+    "samples": 300,
+    "mean_gas": 21510.4,
+    "median_gas": 21512.0,
+    "min_gas": 21488,
+    "max_gas": 21512,
+    "gas_price_wei": 2000000000,
+    "mean_cost_wei": 43020720000000.0,
+    "mean_cost_eth": 4.302072e-05
+  },
+  "onchain_txs_mined": 300,
+  "throughput_rps": {
+    "sequential_anchored": 92.08,
+    "concurrent_anchored": 141.21,
+    "concurrency_level": 10,
+    "concurrent_detail": {
+      "n": 300,
+      "ok": 300,
+      "concurrency": 10,
+      "elapsed_s": 2.125,
+      "throughput_rps": 141.21
+    }
+  },
+  "tamper_detection": {
+    "trials": 500,
+    "detected": 500,
+    "detection_rate_pct": 100.0,
+    "false_positives": 0
+  },
+  "onchain_retrievability": {
+    "recorded_hash": "2ef88324e9398f56dfb10c16c7276d44f9d65a605176c9280132747bd8e7ddee",
+    "found_on_chain": true
+  }
+}

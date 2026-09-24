@@ -1,0 +1,51 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><style>
+  body{margin:0;background:#fff;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;color:#0b0b0b}
+  .card{padding:8px 10px;background:#fff} svg{display:block}
+  text{font-family:-apple-system,"Helvetica Neue",Arial,sans-serif}
+</style></head><body>
+<!-- Designed at 700px for a 3.5in column: 1px = 0.36pt; 20px labels print at 7.2pt. -->
+<div class="card" id="pipeline">
+<svg width="700" height="330" viewBox="0 0 700 330">
+  <defs><marker id="ar" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#52514e"/></marker>
+        <marker id="aro" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="#eb6834"/></marker></defs>
+
+  <rect x="10" y="110" width="120" height="70" rx="8" fill="#fff" stroke="#eb6834" stroke-width="2.5"/>
+  <text x="70" y="138" text-anchor="middle" font-size="20" font-weight="700" fill="#eb6834">Attacker</text>
+  <text x="70" y="162" text-anchor="middle" font-size="15" fill="#52514e">black-box probes</text>
+
+  <rect x="180" y="110" width="100" height="70" rx="8" fill="#fff" stroke="#52514e" stroke-width="2"/>
+  <text x="230" y="140" text-anchor="middle" font-size="19" font-weight="600">Proxy</text>
+  <text x="230" y="162" text-anchor="middle" font-size="14" fill="#52514e">port guard</text>
+
+  <rect x="330" y="20" width="130" height="250" rx="8" fill="#f6f6f4" stroke="#52514e" stroke-width="2"/>
+  <text x="395" y="45" text-anchor="middle" font-size="18" font-weight="600">Decoys</text>
+  <g font-size="15" text-anchor="middle">
+    <rect x="345" y="60" width="100" height="34" rx="6" fill="#fff" stroke="#52514e"/><text x="395" y="82">SSH shell</text>
+    <rect x="345" y="104" width="100" height="34" rx="6" fill="#fff" stroke="#52514e"/><text x="395" y="126">JSON-RPC</text>
+    <rect x="345" y="148" width="100" height="34" rx="6" fill="#fff" stroke="#52514e"/><text x="395" y="170">CI / HTTP</text>
+    <rect x="345" y="192" width="100" height="34" rx="6" fill="#fff" stroke="#52514e"/><text x="395" y="214">AI API</text>
+    <rect x="345" y="236" width="100" height="26" rx="6" fill="#fff" stroke="#52514e"/><text x="395" y="254" font-size="14">SQL gateway</text>
+  </g>
+
+  <rect x="520" y="20" width="170" height="250" rx="8" fill="#eef4fc" stroke="#2a78d6" stroke-width="2.5"/>
+  <text x="605" y="45" text-anchor="middle" font-size="18" font-weight="700" fill="#2a78d6">Response engine</text>
+  <g font-size="15" text-anchor="middle">
+    <rect x="535" y="62" width="140" height="52" rx="6" fill="#fff" stroke="#1baf7a" stroke-width="2"/>
+    <text x="605" y="82" font-weight="600">Tier 1: static table</text><text x="605" y="102" fill="#52514e">30 recon commands</text>
+    <rect x="535" y="126" width="140" height="52" rx="6" fill="#fff" stroke="#eda100" stroke-width="2"/>
+    <text x="605" y="146" font-weight="600">Tier 2: Redis cache</text><text x="605" y="166" fill="#52514e">exact key, 6 h TTL</text>
+    <rect x="535" y="190" width="140" height="66" rx="6" fill="#fff" stroke="#eb6834" stroke-width="2"/>
+    <text x="605" y="212" font-weight="600">Tier 3: hosted LLM</text><text x="605" y="232" fill="#52514e">Llama-3.1-8B via</text><text x="605" y="248" fill="#52514e">OpenRouter API</text>
+  </g>
+
+  <line x1="132" y1="145" x2="176" y2="145" stroke="#eb6834" stroke-width="2" marker-end="url(#aro)"/>
+  <line x1="282" y1="145" x2="326" y2="145" stroke="#52514e" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="462" y1="145" x2="516" y2="145" stroke="#52514e" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="489" y="135" text-anchor="middle" font-size="13" fill="#52514e">HTTP</text>
+
+  <text x="350" y="300" text-anchor="middle" font-size="15" fill="#eb6834">Observed by the attacker: banner and protocol semantics (E1), response latency per tier (E2)</text>
+  <text x="350" y="320" text-anchor="middle" font-size="15" fill="#52514e">Reference services probed identically: OpenSSH, Ganache, Jenkins</text>
+</svg>
+</div>
+</body></html>

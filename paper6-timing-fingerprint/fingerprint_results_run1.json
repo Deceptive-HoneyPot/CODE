@@ -1,0 +1,707 @@
+{
+  "meta": {
+    "generated": "2026-09-18T21:45:54",
+    "trials": 30,
+    "runtime_s": 2275.4,
+    "real_rpc": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
+    "real_ci_server": "Jetty(12.1.5)",
+    "real_ci_version": "2.541.3",
+    "real_ssh": "SSH-2.0-OpenSSH_10.3",
+    "decoy_ssh": "SSH-2.0-AsyncSSH_2.23.1"
+  },
+  "e1_conformance": [
+    {
+      "service": "ssh",
+      "probe": "protocol banner",
+      "decoy": "SSH-2.0-AsyncSSH_2.23.1",
+      "real": "SSH-2.0-OpenSSH_10.3",
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "host-key type offered",
+      "decoy": "ssh-rsa",
+      "real": "ssh-rsa",
+      "distinguishing": false
+    },
+    {
+      "service": "ssh",
+      "probe": "cipher negotiated (same client)",
+      "decoy": "chacha20-poly1305@openssh.com",
+      "real": "chacha20-poly1305@openssh.com",
+      "distinguishing": false
+    },
+    {
+      "service": "ssh",
+      "probe": "random credentials accepted",
+      "decoy": true,
+      "real": false,
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "exec request honoured",
+      "decoy": false,
+      "real": true,
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "shell arithmetic $((7*6))",
+      "decoy": "$((7*6))",
+      "real": "42",
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "missing-file error format",
+      "decoy": "cat: /etc/nosuchfile: No such file or directory",
+      "real": "cat: /etc/nosuchfile: No such file or directory",
+      "distinguishing": false
+    },
+    {
+      "service": "ssh",
+      "probe": "unknown command error format",
+      "decoy": "frobnicate: command not foun",
+      "real": "-bash: frobnicate: command not found",
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "pwd after cd /tmp",
+      "decoy": "",
+      "real": "/tmp",
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "hostname vs uname -n consistency",
+      "decoy": "bash: hostname; uname -n: command not found",
+      "real": "50c6c971be27\n50c6c971be27",
+      "distinguishing": true
+    },
+    {
+      "service": "ssh",
+      "probe": "echo of quoted string",
+      "decoy": "a  b",
+      "real": "a  b",
+      "distinguishing": false
+    },
+    {
+      "service": "rpc",
+      "probe": "web3_clientVersion",
+      "decoy": "Istanbul",
+      "real": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "eth_chainId",
+      "decoy": "1",
+      "real": "0x539",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "unknown method -> error code",
+      "decoy": "keys=['error', 'id', 'jsonrpc'] error.code=-32601",
+      "real": "keys=['error', 'id', 'jsonrpc'] error.code=-32700",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "malformed JSON body",
+      "decoy": "http=500 str:Internal Server Error",
+      "real": "http=400 str:400 Bad Request: Expected property name or '}' in JSON at po",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "string id echoed as string",
+      "decoy": "'abc'",
+      "real": "'abc'",
+      "distinguishing": false
+    },
+    {
+      "service": "rpc",
+      "probe": "batch request (array)",
+      "decoy": "http=500 str:Internal Server Error",
+      "real": "http=200 list[2]",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "eth_getBalance without params",
+      "decoy": "keys=['id', 'jsonrpc', 'result']",
+      "real": "keys=['error', 'id', 'jsonrpc'] error.code=-32700",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "eth_blockNumber monotonic (two calls)",
+      "decoy": "0x112A880 then 0x112A880",
+      "real": "0x19e then 0x19e",
+      "distinguishing": true
+    },
+    {
+      "service": "rpc",
+      "probe": "eth_getBlockByNumber latest -> field count",
+      "decoy": "keys=['id', 'jsonrpc', 'result']",
+      "real": "23 fields",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "GET / -> status, Server, X-Jenkins",
+      "decoy": "http=404 Server=uvicorn X-Jenkins=- X-Hudson=-",
+      "real": "http=200 Server=Jetty(12.1.5) X-Jenkins=2.541.3 X-Hudson=1.395",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "GET /api/json -> status, content-type, top-level keys",
+      "decoy": "http=200 ct=application/json keys=['result']",
+      "real": "http=200 ct=application/json keys=['_class', 'assignedLabels', 'description', 'jobs', 'mode', 'nodeDescription']",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "GET /nonexistent -> status, Server",
+      "decoy": "http=404 Server=uvicorn",
+      "real": "http=404 Server=Jetty(12.1.5)",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "GET /login -> status",
+      "decoy": "http=404 Server=uvicorn",
+      "real": "http=200 Server=Jetty(12.1.5)",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "HEAD / -> status",
+      "decoy": "http=404 Server=uvicorn",
+      "real": "http=200 Server=Jetty(12.1.5)",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "GET /robots.txt -> status",
+      "decoy": "http=404 ",
+      "real": "http=200 ",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "POST /job/build/api/json -> status",
+      "decoy": "http=200 Server=uvicorn",
+      "real": "http=403 Server=Jetty(12.1.5)",
+      "distinguishing": true
+    },
+    {
+      "service": "ci",
+      "probe": "GET /api/json?depth=0 -> repeated call identical?",
+      "decoy": "identical",
+      "real": "identical",
+      "distinguishing": false
+    }
+  ],
+  "e2_timing": {
+    "ssh": {
+      "auth": {
+        "decoy": {
+          "n": 30,
+          "mean": 38.684,
+          "median": 36.073,
+          "p5": 34.252,
+          "p95": 64.757,
+          "min": 34.252,
+          "max": 67.913,
+          "stdev": 7.804
+        },
+        "real": {
+          "n": 30,
+          "mean": 32.003,
+          "median": 31.62,
+          "p5": 27.898,
+          "p95": 35.404,
+          "min": 27.898,
+          "max": 35.414,
+          "stdev": 1.882
+        },
+        "auc": 0.9744,
+        "threshold": {
+          "accuracy": 0.9333,
+          "threshold_ms": 33.642,
+          "decoy_if": "gt"
+        }
+      },
+      "static": {
+        "decoy": {
+          "n": 30,
+          "mean": 12.719,
+          "median": 11.909,
+          "p5": 11.281,
+          "p95": 20.012,
+          "min": 11.281,
+          "max": 20.16,
+          "stdev": 2.477
+        },
+        "real": {
+          "n": 30,
+          "mean": 6007.381,
+          "median": 1.395,
+          "p5": 0.864,
+          "p95": 90010.543,
+          "min": 0.864,
+          "max": 90153.61,
+          "stdev": 22854.044
+        },
+        "auc": 0.9033,
+        "threshold": {
+          "accuracy": 0.95,
+          "threshold_ms": 3.165,
+          "decoy_if": "gt"
+        }
+      },
+      "cache": {
+        "decoy": {
+          "n": 30,
+          "mean": 9.303,
+          "median": 8.989,
+          "p5": 8.311,
+          "p95": 12.01,
+          "min": 8.311,
+          "max": 13.992,
+          "stdev": 1.184
+        },
+        "real": {
+          "n": 30,
+          "mean": 6010.566,
+          "median": 1.142,
+          "p5": 1.05,
+          "p95": 90089.677,
+          "min": 1.05,
+          "max": 90194.077,
+          "stdev": 22869.43
+        },
+        "auc": 0.9333,
+        "threshold": {
+          "accuracy": 0.9667,
+          "threshold_ms": 1.692,
+          "decoy_if": "gt"
+        }
+      },
+      "llm": {
+        "decoy": {
+          "n": 30,
+          "mean": 2905.258,
+          "median": 1427.62,
+          "p5": 569.3,
+          "p95": 12171.631,
+          "min": 569.3,
+          "max": 12334.446,
+          "stdev": 3354.818
+        },
+        "real": {
+          "n": 30,
+          "mean": 6010.162,
+          "median": 1.344,
+          "p5": 1.088,
+          "p95": 90090.177,
+          "min": 1.088,
+          "max": 90176.789,
+          "stdev": 22867.257
+        },
+        "auc": 0.9333,
+        "threshold": {
+          "accuracy": 0.9667,
+          "threshold_ms": 1.774,
+          "decoy_if": "gt"
+        }
+      },
+      "session5": {
+        "decoy": {
+          "n": 30,
+          "mean": 61.417,
+          "median": 61.044,
+          "p5": 53.349,
+          "p95": 66.779,
+          "min": 53.349,
+          "max": 72.238,
+          "stdev": 3.358
+        },
+        "real": {
+          "n": 30,
+          "mean": 6014.39,
+          "median": 7.091,
+          "p5": 6.13,
+          "p95": 90035.916,
+          "min": 6.13,
+          "max": 90197.046,
+          "stdev": 22861.493
+        },
+        "auc": 0.9333,
+        "threshold": {
+          "accuracy": 0.9667,
+          "threshold_ms": 8.777,
+          "decoy_if": "gt"
+        }
+      },
+      "repeat_same_session": {
+        "decoy": {
+          "n": 30,
+          "mean": 2913.935,
+          "median": 1387.516,
+          "p5": 536.499,
+          "p95": 11459.936,
+          "min": 536.499,
+          "max": 12427.293,
+          "stdev": 3271.833
+        },
+        "note": "same command repeated in the same session; cache key includes history so this is a model call"
+      }
+    },
+    "rpc": {
+      "static": {
+        "decoy": {
+          "n": 30,
+          "mean": 23.314,
+          "median": 23.547,
+          "p5": 14.34,
+          "p95": 27.483,
+          "min": 14.34,
+          "max": 28.944,
+          "stdev": 2.489
+        },
+        "real": {
+          "n": 30,
+          "mean": 2.885,
+          "median": 2.963,
+          "p5": 1.817,
+          "p95": 3.793,
+          "min": 1.817,
+          "max": 3.95,
+          "stdev": 0.562
+        },
+        "auc": 1.0,
+        "threshold": {
+          "accuracy": 1.0,
+          "threshold_ms": 3.95,
+          "decoy_if": "gt"
+        }
+      },
+      "llm": {
+        "decoy": {
+          "n": 30,
+          "mean": 4035.198,
+          "median": 1411.545,
+          "p5": 537.347,
+          "p95": 13015.214,
+          "min": 537.347,
+          "max": 18469.485,
+          "stdev": 4287.723
+        },
+        "real": {
+          "n": 30,
+          "mean": 7.694,
+          "median": 7.609,
+          "p5": 3.562,
+          "p95": 10.824,
+          "min": 3.562,
+          "max": 12.762,
+          "stdev": 1.553
+        },
+        "auc": 1.0,
+        "threshold": {
+          "accuracy": 1.0,
+          "threshold_ms": 12.762,
+          "decoy_if": "gt"
+        }
+      },
+      "cache": {
+        "decoy": {
+          "n": 30,
+          "mean": 43.074,
+          "median": 44.621,
+          "p5": 28.598,
+          "p95": 48.959,
+          "min": 28.598,
+          "max": 49.729,
+          "stdev": 5.368
+        },
+        "real": {
+          "n": 30,
+          "mean": 3.954,
+          "median": 4.022,
+          "p5": 2.876,
+          "p95": 4.737,
+          "min": 2.876,
+          "max": 4.87,
+          "stdev": 0.603
+        },
+        "auc": 1.0,
+        "threshold": {
+          "accuracy": 1.0,
+          "threshold_ms": 4.87,
+          "decoy_if": "gt"
+        }
+      }
+    },
+    "ci": {
+      "api_json_llm": {
+        "decoy": {
+          "n": 30,
+          "mean": 26.813,
+          "median": 27.739,
+          "p5": 18.28,
+          "p95": 34.135,
+          "min": 18.28,
+          "max": 37.121,
+          "stdev": 5.941
+        },
+        "real": {
+          "n": 30,
+          "mean": 4.077,
+          "median": 3.842,
+          "p5": 3.002,
+          "p95": 5.439,
+          "min": 3.002,
+          "max": 9.882,
+          "stdev": 1.237
+        },
+        "auc": 1.0,
+        "threshold": {
+          "accuracy": 1.0,
+          "threshold_ms": 9.882,
+          "decoy_if": "gt"
+        }
+      },
+      "build_post_llm": {
+        "decoy": {
+          "n": 30,
+          "mean": 5265.839,
+          "median": 3494.966,
+          "p5": 1286.069,
+          "p95": 19492.362,
+          "min": 1286.069,
+          "max": 23922.244,
+          "stdev": 5382.164
+        },
+        "real": {
+          "n": 30,
+          "mean": 8.633,
+          "median": 8.32,
+          "p5": 5.754,
+          "p95": 12.209,
+          "min": 5.754,
+          "max": 14.166,
+          "stdev": 1.573
+        },
+        "auc": 1.0,
+        "threshold": {
+          "accuracy": 1.0,
+          "threshold_ms": 14.166,
+          "decoy_if": "gt"
+        }
+      },
+      "unknown_path_static": {
+        "decoy": {
+          "n": 30,
+          "mean": 7.262,
+          "median": 7.286,
+          "p5": 4.517,
+          "p95": 8.314,
+          "min": 4.517,
+          "max": 10.341,
+          "stdev": 0.959
+        },
+        "real": {
+          "n": 30,
+          "mean": 16.167,
+          "median": 15.483,
+          "p5": 12.278,
+          "p95": 26.445,
+          "min": 12.278,
+          "max": 29.083,
+          "stdev": 3.49
+        },
+        "auc": 0.0,
+        "threshold": {
+          "accuracy": 1.0,
+          "threshold_ms": 12.278,
+          "decoy_if": "lt"
+        }
+      }
+    }
+  },
+  "e3_corpus": {
+    "n": 2500,
+    "failed": 0,
+    "wall_s": 897.4,
+    "concurrency": 8,
+    "first_pass": {
+      "static": {
+        "count": 0,
+        "share": 0.0,
+        "latency_ms": {}
+      },
+      "cache": {
+        "count": 0,
+        "share": 0.0,
+        "latency_ms": {}
+      },
+      "llm": {
+        "count": 2500,
+        "share": 1.0,
+        "latency_ms": {
+          "n": 2500,
+          "mean": 2849.914,
+          "median": 1363.47,
+          "p5": 514.541,
+          "p95": 8566.919,
+          "min": 435.494,
+          "max": 32533.56,
+          "stdev": 3087.811
+        }
+      }
+    },
+    "by_service": {
+      "ssh": {
+        "llm": {
+          "count": 1862,
+          "latency_ms": {
+            "n": 1862,
+            "mean": 2926.267,
+            "median": 1368.925,
+            "p5": 522.939,
+            "p95": 8827.639,
+            "min": 453.486,
+            "max": 32533.56,
+            "stdev": 3213.142
+          }
+        }
+      },
+      "api": {
+        "llm": {
+          "count": 136,
+          "latency_ms": {
+            "n": 136,
+            "mean": 1693.716,
+            "median": 1098.977,
+            "p5": 465.22,
+            "p95": 5016.039,
+            "min": 435.874,
+            "max": 11563.024,
+            "stdev": 1774.114
+          }
+        }
+      },
+      "sql": {
+        "llm": {
+          "count": 474,
+          "latency_ms": {
+            "n": 474,
+            "mean": 2906.864,
+            "median": 1438.694,
+            "p5": 510.337,
+            "p95": 8038.535,
+            "min": 435.494,
+            "max": 21550.449,
+            "stdev": 2832.283
+          }
+        }
+      },
+      "web3": {
+        "llm": {
+          "count": 18,
+          "latency_ms": {
+            "n": 18,
+            "mean": 1613.482,
+            "median": 1192.13,
+            "p5": 478.362,
+            "p95": 5329.721,
+            "min": 478.362,
+            "max": 5329.721,
+            "stdev": 1380.935
+          }
+        }
+      },
+      "cicd": {
+        "llm": {
+          "count": 10,
+          "latency_ms": {
+            "n": 10,
+            "mean": 3883.51,
+            "median": 2673.457,
+            "p5": 511.03,
+            "p95": 11272.974,
+            "min": 511.03,
+            "max": 11272.974,
+            "stdev": 3791.269
+          }
+        }
+      }
+    },
+    "second_pass_sample": {
+      "static": {
+        "count": 0,
+        "share": 0.0,
+        "latency_ms": {}
+      },
+      "cache": {
+        "count": 300,
+        "share": 1.0,
+        "latency_ms": {
+          "n": 300,
+          "mean": 3.542,
+          "median": 3.426,
+          "p5": 2.212,
+          "p95": 5.101,
+          "min": 1.268,
+          "max": 7.027,
+          "stdev": 0.906
+        }
+      },
+      "llm": {
+        "count": 0,
+        "share": 0.0,
+        "latency_ms": {}
+      }
+    }
+  },
+  "e4_mitigation": {
+    "corpus": 2500,
+    "distinct_exact_keys": 2500,
+    "distinct_normalized_keys": 2498,
+    "split_warm": 1250,
+    "split_test": 1250,
+    "exact_key_hits": 0,
+    "normalized_key_hits": 2,
+    "exact_hit_rate": 0.0,
+    "normalized_hit_rate": 0.0016,
+    "by_service": {
+      "api": {
+        "test": 65,
+        "normalized_hits": 0
+      },
+      "cicd": {
+        "test": 3,
+        "normalized_hits": 0
+      },
+      "sql": {
+        "test": 229,
+        "normalized_hits": 2
+      },
+      "ssh": {
+        "test": 943,
+        "normalized_hits": 0
+      },
+      "web3": {
+        "test": 10,
+        "normalized_hits": 0
+      }
+    }
+  }
+}

@@ -15,13 +15,13 @@ CONTENTS
   ICOIICS_245_paper.pdf     Camera-ready paper, 8 pages, IEEE conference format
   ICOIICS_245_paper.docx    Editable Word version of the same paper
   latex/paper.tex           LaTeX source (IEEEtran); compiles standalone
-  latex/references.md       Reference list source, 23 entries
+  latex/references.md       Reference list source, 19 entries
   latex/figures/            All figures, 300 dpi PNG
   response_to_reviewers.md  Point-by-point response to every reviewer comment
 
 COMPLIANCE WITH THE FINAL SUBMISSION INSTRUCTIONS
   - IEEE conference template (IEEEtran, two column).
-  - 23 references, all cited in the text as [1]..[23] in sequential order.
+  - 19 references, all cited in the text as [1]..[19] in sequential order.
   - Figures 1-5 and Tables I-VI numbered and referenced in order of appearance.
   - All reviewer comments addressed; see response_to_reviewers.md.
   - IEEE eCopyright form submitted; screenshot attached to the email.

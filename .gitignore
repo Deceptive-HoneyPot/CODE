@@ -10,3 +10,4 @@ build/
 *.log
 real_data_cache/
 .DS_Store
+~$*

@@ -103,9 +103,11 @@ def build(ieee: bool):
     title = detex(re.search(r"\\title\{(.*?)\}\s*\n", TEX, re.S).group(1))
     para(title, 18, bold=True, align=WD_ALIGN_PARAGRAPH.CENTER)
     auth = re.search(r"\\author\{(.*?)\n\}\n", TEX, re.S).group(1)
-    for ln in re.findall(r"\\IEEEauthorblock[NA]\{(.*?)\}\n", auth, re.S):
+    sup = str.maketrans("0123456789", "⁰¹²³⁴⁵⁶⁷⁸⁹")
+    auth = re.sub(r"\\textsuperscript\{(\d+)\}", lambda m: m.group(1).translate(sup), auth)
+    for ln in re.findall(r"\\IEEEauthorblock[NA]\{(.*?)\}(?=\n|$)", auth, re.S):
         for sub in ln.split("\\\\"):
-            para(detex(sub), 10.5, align=WD_ALIGN_PARAGRAPH.CENTER)
+            para(detex(sub), 10.5 if "\\textit" not in sub else 10, italic="\\textit" in sub, align=WD_ALIGN_PARAGRAPH.CENTER)
     if ieee:
         ensure_cols(2)
 

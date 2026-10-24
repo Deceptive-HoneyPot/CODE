@@ -1,0 +1,53 @@
+# Render Blueprint: Redis + ai-engine + backend.
+# Render dashboard -> New + -> Blueprint -> pick this repo.
+# The dashboard deploys separately on Vercel (root: dashboard).
+
+services:
+  - type: keyvalue
+    name: honeypot-redis
+    region: singapore
+    plan: free
+    ipAllowList: []
+
+  - type: web
+    name: honeypot-ai-engine
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: ai-engine
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn engine:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: honeypot-redis
+          property: connectionString
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: meta-llama/llama-3.1-8b-instruct
+
+  - type: web
+    name: honeypot-backend
+    runtime: python
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: honeypot-redis
+          property: connectionString
+      - key: OPENROUTER_API_KEY
+        sync: false
+      # Set after ai-engine is live, e.g. https://honeypot-ai-engine.onrender.com
+      - key: AI_ENGINE_URL
+        sync: false

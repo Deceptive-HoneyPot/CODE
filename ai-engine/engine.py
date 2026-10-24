@@ -16,7 +16,7 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MAX_TOKENS = int(os.getenv("OPENROUTER_MAX_TOKENS", "60"))
 CACHE_TTL_SECONDS = int(os.getenv("CACHE_TTL_SECONDS", "21600"))  # 6h, was 1h
 
-cache = redis.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
+cache = redis.from_url(os.getenv("REDIS_URL", f"redis://{REDIS_HOST}:6379"), decode_responses=True)
 
 app = FastAPI(title="Honeypot AI Engine")
 

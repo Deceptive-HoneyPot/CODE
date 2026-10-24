@@ -33,7 +33,7 @@ app.add_middleware(
 
 # Redis connection
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
-r = redis_lib.Redis(host=REDIS_HOST, port=6379, decode_responses=True)
+r = redis_lib.from_url(os.getenv("REDIS_URL", f"redis://{REDIS_HOST}:6379"), decode_responses=True)
 
 # Blockchain connection
 GANACHE_URL = os.getenv("GANACHE_URL", "http://localhost:7545")
@@ -298,7 +298,7 @@ def health():
 async def run_benchmark():
     NUM_STATIC = 10
     NUM_DYNAMIC = 1
-    URL = "http://ai-engine:8000/api/response"
+    URL = os.getenv("AI_ENGINE_URL", "http://ai-engine:8000") + "/api/response"
     
     static_payload = {"command": "ip a", "history": [], "service": "ssh"}
     dynamic_payload = {"command": "cat /var/log/syslog | grep error", "history": [], "service": "ssh"}

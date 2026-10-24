@@ -30,17 +30,15 @@ services:
       - key: OPENROUTER_MODEL
         value: meta-llama/llama-3.1-8b-instruct
 
+  # Docker so Ganache can run inside the same container (see Dockerfile.render).
   - type: web
     name: honeypot-backend
-    runtime: python
+    runtime: docker
     region: singapore
     plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    dockerfilePath: ./backend/Dockerfile.render
+    dockerContext: ./backend
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11.9
       - key: REDIS_URL
         fromService:
           type: keyvalue

@@ -1,0 +1,23 @@
+# Render image: backend + Ganache in one container. On the free tier a separate
+# Ganache service would burn instance hours and lose its chain on every
+# spin-down; running it next to the backend avoids both. docker-compose keeps
+# using ./Dockerfile with the standalone ganache service.
+FROM node:20-bookworm-slim
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends python3 python3-venv \
+    && rm -rf /var/lib/apt/lists/*
+RUN npm install -g ganache@7 && npm cache clean --force
+
+WORKDIR /app
+RUN python3 -m venv /opt/venv
+ENV PATH=/opt/venv/bin:$PATH
+COPY requirements.txt .
+RUN pip install --no-cache-dir --retries 5 --timeout 120 -r requirements.txt
+COPY . .
+
+ENV GANACHE_URL=http://127.0.0.1:7545 \
+    NODE_OPTIONS=--max-old-space-size=256 \
+    PYTHONUNBUFFERED=1
+EXPOSE 10000
+CMD ["sh", "start-render.sh"]

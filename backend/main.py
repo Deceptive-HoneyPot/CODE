@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 import asyncio, json, os, hashlib, time
 import redis as redis_lib
 from web3 import Web3
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import httpx
 
 import ai_classifier
@@ -30,12 +30,29 @@ async def _close_verdict_client():
 # RENDER_EXTERNAL_URL automatically; locally it is unset, so this is a no-op.
 KEEPALIVE_URL = os.getenv("KEEPALIVE_URL") or os.getenv("RENDER_EXTERNAL_URL")
 KEEPALIVE_SECONDS = int(os.getenv("KEEPALIVE_SECONDS", "600"))
+# Only ping inside this daily window ("start-end", 24h clock, local time) so
+# the service sleeps overnight and saves free instance hours. Outside it,
+# Render spins us down; .github/workflows/wake-backend.yml wakes us at the
+# start of the window. Empty string = ping around the clock.
+KEEPALIVE_HOURS = os.getenv("KEEPALIVE_HOURS", "8-22")
+KEEPALIVE_UTC_OFFSET = float(os.getenv("KEEPALIVE_UTC_OFFSET", "5.5"))  # IST
+
+
+def _in_keepalive_window() -> bool:
+    if not KEEPALIVE_HOURS:
+        return True
+    start, end = (int(h) for h in KEEPALIVE_HOURS.split("-"))
+    hour = (datetime.now(timezone.utc) + timedelta(hours=KEEPALIVE_UTC_OFFSET)).hour
+    return start <= hour < end if start < end else hour >= start or hour < end
 
 
 async def _keepalive_loop():
     async with httpx.AsyncClient(timeout=30.0) as client:
         while True:
             await asyncio.sleep(KEEPALIVE_SECONDS)
+            if not _in_keepalive_window():
+                print("[keepalive] outside active hours, letting service sleep")
+                continue
             try:
                 resp = await client.get(f"{KEEPALIVE_URL.rstrip('/')}/health")
                 print(f"[keepalive] {resp.status_code}")

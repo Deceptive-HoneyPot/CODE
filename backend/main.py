@@ -24,6 +24,30 @@ async def _close_verdict_client():
     if _verdict_http_client is not None:
         await _verdict_http_client.aclose()
 
+
+# Render's free tier spins a web service down after 15 min without inbound
+# traffic. Pinging our own public URL keeps it awake. Render sets
+# RENDER_EXTERNAL_URL automatically; locally it is unset, so this is a no-op.
+KEEPALIVE_URL = os.getenv("KEEPALIVE_URL") or os.getenv("RENDER_EXTERNAL_URL")
+KEEPALIVE_SECONDS = int(os.getenv("KEEPALIVE_SECONDS", "600"))
+
+
+async def _keepalive_loop():
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        while True:
+            await asyncio.sleep(KEEPALIVE_SECONDS)
+            try:
+                resp = await client.get(f"{KEEPALIVE_URL.rstrip('/')}/health")
+                print(f"[keepalive] {resp.status_code}")
+            except Exception as e:
+                print(f"[keepalive] failed: {e}")
+
+
+@app.on_event("startup")
+async def _start_keepalive():
+    if KEEPALIVE_URL and KEEPALIVE_SECONDS > 0:
+        asyncio.create_task(_keepalive_loop())
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

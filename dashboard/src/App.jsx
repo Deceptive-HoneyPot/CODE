@@ -6,12 +6,13 @@ import Overview from "./pages/Overview";
 import LiveFeed from "./pages/LiveFeed";
 import Attackers from "./pages/Attackers";
 import Services from "./pages/Services";
+import TryAttack from "./pages/TryAttack";
 
-const PAGES = { overview: Overview, live: LiveFeed, attackers: Attackers, services: Services };
+const PAGES = { overview: Overview, live: LiveFeed, attackers: Attackers, services: Services, try: TryAttack };
 
 export default function App() {
   const [page, setPage] = useState("overview");
-  const { logs, stats, connected } = useHoneypotFeed();
+  const { logs, stats, connected, BACKEND } = useHoneypotFeed();
 
   const Page = PAGES[page] || Overview;
 
@@ -50,7 +51,7 @@ export default function App() {
         />
         <div style={{ padding: "24px 32px", maxWidth: 1400, width: "100%" }}>
           <div key={page} className="page-enter">
-            <Page logs={logs} stats={stats} connected={connected} setPage={setPage} />
+            <Page logs={logs} stats={stats} connected={connected} setPage={setPage} backend={BACKEND} />
           </div>
         </div>
       </div>

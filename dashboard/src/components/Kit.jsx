@@ -63,6 +63,7 @@ const NAV_ITEMS = [
   { key: "live", label: "Live feed" },
   { key: "attackers", label: "Attackers" },
   { key: "services", label: "Services" },
+  { key: "try", label: "Try an attack" },
 ];
 
 export function Sidebar({ page, setPage, connected, chainConnected, totalEvents }) {

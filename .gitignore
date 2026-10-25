@@ -9,5 +9,7 @@ dist/
 build/
 *.log
 real_data_cache/
+.pytest_cache/
+forensics_export/
 .DS_Store
 ~$*

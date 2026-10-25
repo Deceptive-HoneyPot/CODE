@@ -1,0 +1,17 @@
+Group 58 project introduction
+Welcome to Group fifty eight. Our project is the A I Driven Cyber Deception and Attack Detection Framework, guided by Doctor Radhika G. This walkthrough uses actual interface screenshots and synthesized narration.
+
+Populated demonstration with simulated data
+This populated dashboard contains one thousand two hundred and twenty eight simulated events. These are illustrative presentation records, not real intercepted attacks. S S H has four hundred and two. S Q L has three hundred and nineteen. C I C D has two hundred and thirty nine. The A I A P I has one hundred and sixty nine. Web three has ninety nine. Each total differs from every other by at least seventy.
+
+Five decoys and three response tiers
+The full framework has five decoy designs: Shadow Shell, Oracle A I, Vault S Q L, Ledger Trap and Forge C I. The response engine checks static responses, then cached responses, then an A I provider when configured. This simulated dataset does not contact the backend or create blockchain anchors.
+
+Verified live submission
+Now we switch to the separately verified live test. We submitted a sample reconnaissance event using Try an attack. The form sends command text to the backend; it does not execute that command. The backend reported Logged, classified the intent as reconnaissance, and returned an anchored on chain status.
+
+Event displayed in the live feed
+The matching event appeared in the live feed with an Anchored label. The standard logging path uses keyword classification, Redis storage, a SHA two hundred and fifty six hash, and a local Ganache test blockchain. This test did not independently inspect a transaction receipt or exercise each network decoy.
+
+Results and practical limits
+After the test, the overview showed four events, with one reported anchored. Older local records remained unchanged. Ganache can reset when its hosted container restarts, and free services can sleep. These limitations are documented on the project website. The website also provides our team details, source repository, project document and both demonstration views. Thank you.

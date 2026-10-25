@@ -8,7 +8,7 @@ import { KpiTile, Panel, PageHeader, EmptyState, IntentDot } from "../components
 
 const SERVICE_ICON = { "SSH": "◆", "AI-API": "◆", "SQL-DB": "◆", "Web3-Node": "◆", "CI-CD": "◆", "PROXY": "◆" };
 
-export default function Overview({ logs, stats, setPage }) {
+export default function Overview({ logs, stats, setPage, demo = false }) {
   const [selected, setSelected] = useState(null);
 
   const uniqueIps = (stats.top_ips || []).length;
@@ -19,18 +19,18 @@ export default function Overview({ logs, stats, setPage }) {
     <>
       <PageHeader
         title="Overview"
-        subtitle="AI-driven deception framework — real-time attacker telemetry"
+        subtitle={demo ? "Illustrative dataset — simulated interactions across all five honeypots" : "AI-driven deception framework — real-time attacker telemetry"}
       />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
         <KpiTile
-          label="Attacks intercepted"
+          label={demo ? "Simulated attack events" : "Attacks intercepted"}
           value={stats.lifetime_total ?? stats.total ?? 0}
           sublabel={stats.lifetime_total > (stats.total || 0) ? `${(stats.total || 0).toLocaleString()} in active window` : undefined}
           icon="⚡"
         />
-        <KpiTile label="Unique attacker IPs" value={uniqueIps} icon="🌐" />
-        <KpiTile label="Services under attack" value={servicesHit} sublabel="of 5 decoys" icon="🎯" />
+        <KpiTile label={demo ? "Illustrative source IPs" : "Unique attacker IPs"} value={uniqueIps} icon="🌐" />
+        <KpiTile label={demo ? "Services represented" : "Services under attack"} value={servicesHit} sublabel="of 5 decoys" icon="🎯" />
         <KpiTile
           label="Evidence anchored on-chain"
           value={logs.length ? `${Math.round((anchoredCount / logs.length) * 100)}%` : "—"}
@@ -42,7 +42,7 @@ export default function Overview({ logs, stats, setPage }) {
 
       <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 16, marginBottom: 16 }}>
         <Panel title="Attack activity">
-          <ActivityChart hourly={stats.hourly} />
+          <ActivityChart hourly={stats.hourly} demo={demo} />
         </Panel>
         <Panel title="Attack intent breakdown">
           <IntentBarChart byIntent={stats.by_intent} />
@@ -73,7 +73,7 @@ export default function Overview({ logs, stats, setPage }) {
       </div>
 
       <Panel
-        title="Live attack feed"
+        title={demo ? "Simulated event feed" : "Live attack feed"}
         action={
           <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
             <span style={{ fontSize: 12, color: COLORS.inkMuted }}>{logs.length} events buffered</span>

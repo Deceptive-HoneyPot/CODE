@@ -66,7 +66,7 @@ const NAV_ITEMS = [
   { key: "try", label: "Try an attack" },
 ];
 
-export function Sidebar({ page, setPage, connected, chainConnected, totalEvents }) {
+export function Sidebar({ page, setPage, connected, chainConnected, totalEvents, demo = false }) {
   return (
     <div style={{ borderRight: `1px solid ${COLORS.border}`, padding: "24px 18px", display: "flex", flexDirection: "column", gap: 28, position: "sticky", top: 0, height: "100vh" }}>
       <div>
@@ -111,8 +111,7 @@ export function Sidebar({ page, setPage, connected, chainConnected, totalEvents 
       </div>
 
       <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 10, paddingTop: 20, borderTop: `1px solid ${COLORS.border}` }}>
-        <StatusPill ok={connected} onLabel="Live feed connected" offLabel="Feed disconnected" />
-        <StatusPill ok={chainConnected} onLabel="Chain anchoring active" offLabel="Chain unreachable" />
+        {demo ? <><span style={{color:COLORS.warning,fontSize:12}}>Simulated dataset loaded</span><span style={{color:COLORS.inkMuted,fontSize:12}}>No blockchain anchors generated</span></> : <><StatusPill ok={connected} onLabel="Live feed connected" offLabel="Feed disconnected" /><StatusPill ok={chainConnected} onLabel="Chain anchoring active" offLabel="Chain unreachable" /></>}
       </div>
     </div>
   );

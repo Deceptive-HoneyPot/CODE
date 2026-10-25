@@ -27,7 +27,7 @@ function Chip({ active, onClick, children, color }) {
   );
 }
 
-export default function LiveFeed({ logs, connected }) {
+export default function LiveFeed({ logs, connected, demo = false }) {
   const [selected, setSelected] = useState(null);
   const [search, setSearch] = useState("");
   const [serviceFilter, setServiceFilter] = useState(null);
@@ -58,9 +58,9 @@ export default function LiveFeed({ logs, connected }) {
   return (
     <>
       <PageHeader
-        title="Live feed"
-        subtitle="Every intercepted interaction across all five decoys, in arrival order"
-        action={<StatusPill ok={connected} onLabel="Streaming" offLabel="Reconnecting…" />}
+        title={demo ? "Simulated event feed" : "Live feed"}
+        subtitle={demo ? "Illustrative records across all five decoys — not intercepted traffic" : "Every intercepted interaction across all five decoys, in arrival order"}
+        action={demo ? <span>Static demonstration</span> : <StatusPill ok={connected} onLabel="Streaming" offLabel="Reconnecting…" />}
       />
 
       <Panel style={{ marginBottom: 16 }}>

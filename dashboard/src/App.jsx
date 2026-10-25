@@ -11,8 +11,9 @@ import TryAttack from "./pages/TryAttack";
 const PAGES = { overview: Overview, live: LiveFeed, attackers: Attackers, services: Services, try: TryAttack };
 
 export default function App() {
+  const demo = new URLSearchParams(window.location.search).get("demo") === "1";
   const [page, setPage] = useState("overview");
-  const { logs, stats, connected, BACKEND } = useHoneypotFeed();
+  const { logs, stats, connected, BACKEND } = useHoneypotFeed(demo);
 
   const Page = PAGES[page] || Overview;
 
@@ -41,8 +42,14 @@ export default function App() {
         .kpi-tile:hover, .panel-card:hover { border-color: rgba(255,255,255,0.18); }
       `}</style>
 
+      <div style={{padding:"12px 24px",background:demo ? "#32301c" : "#17231e",fontSize:13,display:"flex",gap:20,flexWrap:"wrap"}}>
+        <a style={{color:"#d2ed92"}} href="/showcase/">Group 58 · Project website</a>
+        <span>{demo ? "SIMULATED DATA · 1,228 illustrative events · No live traffic or blockchain anchors" : "LIVE BACKEND · Includes submitted test events"}</span>
+        <a style={{color:"#fff"}} href={demo ? "/" : "/?demo=1"}>{demo ? "Switch to live demo" : "View populated demonstration"}</a>
+      </div>
       <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", minHeight: "100vh" }}>
         <Sidebar
+          demo={demo}
           page={page}
           setPage={setPage}
           connected={connected}
@@ -51,7 +58,7 @@ export default function App() {
         />
         <div style={{ padding: "24px 32px", maxWidth: 1400, width: "100%" }}>
           <div key={page} className="page-enter">
-            <Page logs={logs} stats={stats} connected={connected} setPage={setPage} backend={BACKEND} />
+            {demo && page === "try" ? <div><h1>Use the live backend for a test</h1><p>This demonstration dataset stays separate from live events.</p><a style={{color:"#d2ed92"}} href="/">Open live demo to submit a sample event →</a></div> : <Page logs={logs} stats={stats} connected={connected} setPage={setPage} backend={BACKEND} demo={demo} />}
           </div>
         </div>
       </div>

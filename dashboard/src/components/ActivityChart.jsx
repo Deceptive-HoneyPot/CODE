@@ -2,7 +2,7 @@ import { COLORS, SERIES } from "../theme";
 
 // Real data only: `hourly` is { "2026-07-31T12": 10, ... } from /api/stats.
 // Renders the last `hours` buckets as a single-series area+line chart.
-export default function ActivityChart({ hourly = {}, hours = 24 }) {
+export default function ActivityChart({ hourly = {}, hours = 24, demo = false }) {
   // Backend writes timestamps with datetime.now().isoformat() — local time,
   // not UTC — so bucket keys must be built from local getters to match the
   // "hourly" dict keys the server actually produced (e.g. "2026-07-31T13").
@@ -36,7 +36,7 @@ export default function ActivityChart({ hourly = {}, hours = 24 }) {
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
-        <span style={{ color: COLORS.inkMuted, fontSize: 12 }}>Attacks intercepted, last {hours}h</span>
+        <span style={{ color: COLORS.inkMuted, fontSize: 12 }}>{demo ? "Simulated events" : "Attacks intercepted"}, last {hours}h</span>
         <span style={{ color: COLORS.ink, fontSize: 13, fontWeight: 600 }}>{totalEvents.toLocaleString()} total</span>
       </div>
       <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto", display: "block" }}>

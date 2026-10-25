@@ -1,17 +1,20 @@
 import { useEffect, useRef, useState } from "react";
+import { createDemoData } from "../demoData";
 
 const BACKEND = process.env.REACT_APP_BACKEND_URL || "http://localhost:3001";
 
 // Central live-data hook: polls /api/stats, streams /ws/live, and keeps a
 // rolling buffer of recent events. Shared by every page so there is exactly
 // one WebSocket connection and one polling loop for the whole app.
-export function useHoneypotFeed() {
-  const [logs, setLogs] = useState([]);
-  const [stats, setStats] = useState({});
+export function useHoneypotFeed(demo = false) {
+  const [fixture] = useState(() => demo ? createDemoData() : null);
+  const [logs, setLogs] = useState(fixture?.logs || []);
+  const [stats, setStats] = useState(fixture?.stats || {});
   const [connected, setConnected] = useState(false);
   const wsRef = useRef(null);
 
   useEffect(() => {
+    if (demo) return;
     const fetchStats = () =>
       fetch(`${BACKEND}/api/stats`).then(r => r.json()).then(setStats).catch(() => {});
     fetchStats();
@@ -45,7 +48,7 @@ export function useHoneypotFeed() {
       clearTimeout(reconnectTimer);
       wsRef.current?.close();
     };
-  }, []);
+  }, [demo]);
 
   return { logs, stats, connected, BACKEND };
 }

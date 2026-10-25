@@ -7,12 +7,18 @@ import LiveFeed from "./pages/LiveFeed";
 import Attackers from "./pages/Attackers";
 import Services from "./pages/Services";
 import TryAttack from "./pages/TryAttack";
+import LandingPage from "./pages/LandingPage";
 
 const PAGES = { overview: Overview, live: LiveFeed, attackers: Attackers, services: Services, try: TryAttack };
 
 export default function App() {
-  const [page, setPage] = useState("overview");
+  const [page, setPage] = useState("landing");
   const { logs, stats, connected, BACKEND } = useHoneypotFeed();
+
+  // Show landing page before entering the dashboard
+  if (page === "landing") {
+    return <LandingPage setPage={setPage} />;
+  }
 
   const Page = PAGES[page] || Overview;
 

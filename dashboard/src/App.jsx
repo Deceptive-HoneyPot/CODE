@@ -13,7 +13,7 @@ const PAGES = { overview: Overview, live: LiveFeed, attackers: Attackers, servic
 
 export default function App() {
   const demo = new URLSearchParams(window.location.search).get("demo") === "1";
-  const [page, setPage] = useState("overview");
+  const [page, setPage] = useState("landing");
   const { logs, stats, connected, BACKEND } = useHoneypotFeed(demo);
 
   // Show landing page before entering the dashboard
@@ -48,8 +48,8 @@ export default function App() {
         .kpi-tile:hover, .panel-card:hover { border-color: rgba(255,255,255,0.18); }
       `}</style>
 
-      <div style={{padding:"12px 24px",background:demo ? "#32301c" : "#17231e",fontSize:13,display:"flex",gap:20,flexWrap:"wrap"}}>
-        <a style={{color:"#d2ed92"}} href="/showcase/">Group 58 · Project website</a>
+      <div style={{padding:"12px 24px",background:demo ? "#32301c" : "#17231e",fontSize:13,display:"flex",gap:20,flexWrap:"wrap",alignItems:"center"}}>
+        <span style={{color:"#d2ed92",cursor:"pointer"}} onClick={() => setPage("landing")}>🍯 Group 58 · Project Info</span>
         <span>{demo ? "SIMULATED DATA · 1,228 illustrative events · No live traffic or blockchain anchors" : "LIVE BACKEND · Includes submitted test events"}</span>
         <a style={{color:"#fff"}} href={demo ? "/" : "/?demo=1"}>{demo ? "Switch to live demo" : "View populated demonstration"}</a>
       </div>

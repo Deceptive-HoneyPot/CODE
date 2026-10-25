@@ -200,6 +200,56 @@ set -a; source .env; set +a
 
 Results are written to `evaluation_results.json`.
 
+## Testing & Quality Assurance
+
+A comprehensive automated test suite covers the FastAPI backend, AI classifier, decoy service protocols, and cryptographic blockchain commitments.
+
+Run all tests:
+```bash
+python tests/run_all_tests.py
+```
+
+## Security Operations & Forensic Tools
+
+The repository includes dedicated command-line utilities in `tools/` for security operations centers (SOC) and threat intelligence analysts:
+
+1. **Forensic Evidence & STIX 2.1 Exporter (`tools/forensic_exporter.py`):**
+   Extracts intercepted attack events and generates OASIS STIX 2.1 bundles, MISP threat packages, CSV telemetry, and cryptographic chain-of-custody audit reports.
+   ```bash
+   python tools/forensic_exporter.py --format all --output-dir forensics_export
+   ```
+
+2. **Operator Administration CLI (`tools/honeypot_cli.py`):**
+   Command-line control interface for checking service connectivity, streaming live logs, auditing blockchain digests, and injecting simulated attack campaigns.
+   ```bash
+   python tools/honeypot_cli.py status
+   python tools/honeypot_cli.py logs --limit 20
+   python tools/honeypot_cli.py verify-chain
+   ```
+
+3. **Decoy Service Health Monitor (`tools/decoy_health_monitor.py`):**
+   Automated synthetic TCP health probe measuring socket availability and latency across all 5 decoy service ports.
+   ```bash
+   python tools/decoy_health_monitor.py
+   ```
+
+4. **Multi-Stage Adversary Simulator (`tools/adversary_simulator.py`):**
+   Simulates realistic APT attack campaigns (APT29, FIN7, Web3 node draining, LLM prompt-injection jailbreaks) to evaluate deception fidelity.
+   ```bash
+   python tools/adversary_simulator.py --campaign APT29
+   ```
+
+5. **Performance & Latency Profiler (`tools/performance_profiler.py`):**
+   Profiles response time percentiles (p50, p95, p99) across the 3-tier pipeline (static fast-path vs Redis cache vs LLM inference).
+   ```bash
+   python tools/performance_profiler.py --iterations 50
+   ```
+
+## Documentation & Architecture
+
+- [Architecture Deep Dive](docs/ARCHITECTURE_DEEP_DIVE.md) — Comprehensive technical breakdown of the 3-tier response pipeline, SHA-256 blockchain anchoring, and multi-protocol decoy surface.
+- [API Reference](docs/API_REFERENCE.md) — Complete endpoint schema specifications for REST and WebSocket interfaces.
+
 ## Security note
 
 This project intentionally builds attacker-facing deception infrastructure
